@@ -1,0 +1,34 @@
+{
+  "name": "node-wordnetify",
+  "version": "0.1.0",
+  "description": "Command line interface to turn text documents into WordNet synset trees",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Planeshifter/node-wordnetify.git"
+  },
+  "keywords": [
+    "text-analytics",
+    "WordNet",
+    "semantic-web",
+    "NLP"
+  ],
+  "author": "Philipp Burckhardt",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Planeshifter/node-wordnetify/issues"
+  },
+  "preferGlobal": "true",
+  "bin": {
+    "wordnetify": "wordnetify.js"
+  },
+  "dependencies": {
+    "commander": "~2.3.0",
+    "text-miner": "~0.1.3",
+    "wordnet-magic": "~0.2.5",
+    "bluebird": "~2.3.5"
+  }
+}
