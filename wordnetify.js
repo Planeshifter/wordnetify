@@ -50,12 +50,20 @@ program
   .version('0.0.1')
   .option('-i, --input [value]', 'Load data from disk')
   .option('-l, --list <items>','A list of input texts')
-  .option('-o, --output [value]', 'Write results to file.')
+  .option('-o, --output [value]', 'Write results to file')
   .option('-t, --threshold <n>', 'Threshold for Tree Nodes', parseInt)
-  .option('-c, --combine','Indicates that document trees should be merged to form corpus tree')
+  .option('-c, --combine','Merge document trees to form corpus tree')
+  .option('-db,--dbpath [value]','Path to WordNet database')
   .parse(process.argv);
 
 var corpus;
+
+if (program.dbpath){
+  global.wn = require("wordnet-magic")(program.dbpath); // tools for interacting with WordNet
+} else {
+  global.wn = require("wordnet-magic")();
+}
+
 if (program.list){
   corpus = program.list.split(",");
   createWordNetTree(corpus);

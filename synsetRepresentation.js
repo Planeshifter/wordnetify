@@ -1,5 +1,4 @@
 var tm = require("text-miner"); // utilities for working with text documents
-var wn = require("wordnet-magic")(); // tools for interacting with WordNet
 var BPromise = require("bluebird");
 var _ = require("underscore");
 var util = require("util");
