@@ -69,6 +69,7 @@ if (program.list){
   createWordNetTree(corpus);
 } else if (program.input){
   var data = fs.readFileSync(program.input);
-  corpus = String(data).replace(/\r\n?/g, "\n").split("\n");
+  corpus = String(data).replace(/\r\n?/g, "\n").split("\n").clean("");
+  console.log(corpus);
   createWordNetTree(corpus);
 }
