@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Planeshifter/node-wordnetify.svg?branch=master)](https://travis-ci.org/Planeshifter/node-wordnetify)
+
 node-wordnetify
 ===============
 
