@@ -23,12 +23,11 @@
   },
   "preferGlobal": "true",
   "bin": {
-    "wordnetify": "wordnetify.js"
+    "wordnetify": "lib/wordnetify.js"
   },
   "dependencies": {
     "commander": "~2.3.0",
     "text-miner": "~0.1.3",
-    "wordnet-magic": "~0.2.5",
     "bluebird": "~2.3.5",
     "underscore": "~1.7.0",
     "winston": "~0.8.1"
