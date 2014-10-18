@@ -9,6 +9,7 @@ describe('WORDNETIFY_SYNSETS_TREE', function(){
 });
 
 describe('getCorpusSynsets', function() {
+  this.timeout(5000);
   it('should return an array for each word holding an array of synsets for the words of each document', function(){
     var synsetArrays = synsetRepresentation(["oranges and lemons"]);
     var firstDoc = synsetArrays[0];
