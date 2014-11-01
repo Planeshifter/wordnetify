@@ -1,6 +1,6 @@
 {
   "name": "node-wordnetify",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Command line interface to turn text documents into WordNet synset trees",
   "main": "main.js",
   "scripts": {
