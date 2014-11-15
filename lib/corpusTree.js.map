@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "corpusTree.js",
+  "sourceRoot": "../src/",
+  "sources": [
+    "corpusTree.coffee"
+  ],
+  "names": [],
+  "mappings": "AAAA;AAAA,MAAA,kBAAA;;AAAA,EAAA,kBAAA,GAAqB,CAAA,SAAA,KAAA,GAAA;WAAA,SAAC,IAAD,GAAA,EAAA;EAAA,CAAA,CAAA,CAAA,IAAA,CAArB,CAAA;;AAAA,EAGA,MAAM,CAAC,OAAP,GAAiB,kBAHjB,CAAA;AAAA"
+}

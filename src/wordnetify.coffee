@@ -7,8 +7,8 @@ mime = require 'mime'
 BPromise = require 'bluebird'
 util = require 'util'
 
-synsetRepresentation = require "./synsetRepresentation"
-constructSynsetData = require "./constructSynsetData"
+{getCorpusSynsets} = require "./synsetRepresentation"
+{constructSynsetData} = require "./constructSynsetData"
 pickSynsets = require "./pickSynsets"
 getCorpusTree = require "./corpusTree"
 
@@ -21,7 +21,7 @@ propagateWords = require("./propagateWords.js");
 createWordNetTree = (corpus) ->
     console.time "Step 1: Retrieve Synset Data"
     wordTreshold = if program.threshold then program.threshold else  1
-    synsetArray = synsetRepresentation(corpus)
+    synsetArray = getCorpusSynsets(corpus)
     BPromise.all(synsetArray).then () =>
       console.timeEnd "Step 1: Retrieve Synset Data"
       console.time "Step 2: Generate Candidate Sets"
@@ -36,11 +36,18 @@ createWordNetTree = (corpus) ->
     BPromise.all(docTrees).then () =>
       console.timeEnd "Step 2: Generate Candidate Sets"
       console.time "Step 3: Pruning (Word Sense Disambiguation)"
-    prunedDocTrees = docTrees.map( (doc) =>
+    fPrunedDocTrees = docTrees.map( (doc) =>
       pickSynsets(doc)
     )
-    BPromise.all(prunedDocTrees).then () =>
+    BPromise.all(fPrunedDocTrees).then (prunedDocTrees) =>
+      console.log( util.inspect prunedDocTrees, null, 4)
       console.timeEnd("Step 3: Pruning (Word Sense Disambiguation)")
+      outputJSON = ''
+      if program.combine
+        finalTree = getCorpusTree(prunedDocTrees)
+        if program.threshold
+          finalTree = thresholdTree(finalTree, program.threshold)
+
 
 
 ###
