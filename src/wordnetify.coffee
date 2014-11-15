@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 
-program = require 'commander'
-fs = require 'fs'
-csv = require 'csv'
-mime = require 'mime'
-BPromise = require 'bluebird'
-util = require 'util'
+program   = require 'commander'
+fs        = require 'fs'
+csv       = require 'csv'
+mime      = require 'mime'
+BPromise  = require 'bluebird'
+util      = require 'util'
 
-{getCorpusSynsets} = require "./synsetRepresentation"
+{getCorpusSynsets}    = require "./synsetRepresentation"
 {constructSynsetData} = require "./constructSynsetData"
-pickSynsets = require "./pickSynsets"
-getCorpusTree = require "./corpusTree"
+pickSynsets           = require "./pickSynsets"
+getCorpusTree         = require "./corpusTree"
+thresholdTree         = require "./thresholdTree"
 
 ###
 thresholdTree = require("./pruneTree.js");
-mergeDocTrees = require("./mergeDocTrees.js");
 propagateWords = require("./propagateWords.js");
 ###
 
@@ -26,10 +26,10 @@ createWordNetTree = (corpus) ->
       console.timeEnd "Step 1: Retrieve Synset Data"
       console.time "Step 2: Generate Candidate Sets"
 
-    docTrees = synsetArray.map( (d, i) =>
-      docTreeMsg = "Construct Candidate Set for Words of Doc " + i
+    docTrees = synsetArray.map( (d, index) =>
+      docTreeMsg = "Construct Candidate Set for Words of Doc " + index
       console.time(docTreeMsg)
-      wordTrees = d.map( (w) => constructSynsetData(w) )
+      wordTrees = d.map( (w) => constructSynsetData(w, index) )
       BPromise.all(wordTrees).then console.timeEnd(docTreeMsg)
       return wordTrees
     )
@@ -40,7 +40,6 @@ createWordNetTree = (corpus) ->
       pickSynsets(doc)
     )
     BPromise.all(fPrunedDocTrees).then (prunedDocTrees) =>
-      console.log( util.inspect prunedDocTrees, null, 4)
       console.timeEnd("Step 3: Pruning (Word Sense Disambiguation)")
       outputJSON = ''
       if program.combine

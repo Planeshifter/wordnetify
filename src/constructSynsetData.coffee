@@ -1,22 +1,26 @@
 _ = require "underscore"
 util = require "util"
 
-constructSynsetData = (word) ->
+constructSynsetData = (word, docIndex) ->
   if word.synsets
-    word.synsets = word.synsets.map (s) => new SynsetNode s, word
+    word.synsets = word.synsets.map (s) => new SynsetNode(s, docIndex, word)
   else
     word.synsets = null
+  console.log word.synsets
+  return word.synsets
 
 class SynsetNode
-  constructor: (synset, word) ->
-    console.log synset
+  constructor: (synset, docIndex, word = {}) ->
+    console.log docIndex
     @synsetid = synset.synsetid
-    @isCandidate = true
+    @isCandidate = if not _.isEmpty(word) then true else false
     @data = synset
     @wordCount = word.count or 1
+    @docs = if docIndex? then [docIndex] else []
     @docCount = 1
-    @words = word.string or []
-    @baseWords = word.baseWords.map (bw) => bw.lemma
+    @words = if word.string then Array(word.string) else []
+    if (word.baseWords)
+      @baseWords = word.baseWords.map (bw) => bw.lemma
     if synset.hypernym?.length > 0
     	@parentId = synset.hypernym[0].synsetid
     else

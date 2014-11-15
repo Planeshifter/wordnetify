@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "thresholdTree.js",
+  "sourceRoot": "../src/",
+  "sources": [
+    "thresholdTree.coffee"
+  ],
+  "names": [],
+  "mappings": "AA8L8H;AAAA;AAAA"
+}

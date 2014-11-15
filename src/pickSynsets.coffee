@@ -25,6 +25,7 @@ pickSynsets = (doc) ->
       else
         chosen = true
     word.splice(i,1) for i in flaggedRemoval by -1
+  doc = doc.map (synsets) => synsets[0]
   return doc
 
 module.exports = pickSynsets
