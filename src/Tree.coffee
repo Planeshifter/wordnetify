@@ -1,7 +1,9 @@
 _ = require 'underscore'
 
 class Tree
-  constructor: () ->
+  constructor: (obj) ->
+    for key, value of obj
+      @[key] = value
   depth: (id) ->
     node = @[id]
     ret_depth
@@ -27,7 +29,7 @@ class Tree
     return synsets.filter((s) => self.depth(s) == max_depth)
   getInformation: (node) ->
     freqSum = node.tagCount
-    N = 130811;
+    N = 130811
     N_r = (count) => BROWN_COUNTS[count] or 0
     prob_hat = ((freqSum + 1) / N) * (N_r(freqSum + 1)/N_r(freqSum))
     return - Math.log(prob_hat)

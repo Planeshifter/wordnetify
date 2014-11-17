@@ -7,6 +7,7 @@ memoize = require "./memoize"
 fs = require 'fs'
 str = require './String.js'
 arr = require './Array.js'
+Tree = require './Tree'
 
 SYNSETS_JSON = fs.readFileSync(__dirname + '/../data/SYNSETS.json')
 WORDNETIFY_SYNSETS_TREE = JSON.parse(SYNSETS_JSON)
@@ -23,6 +24,8 @@ for key, synset of WORDNETIFY_SYNSETS_TREE
       synset.tagCount = BROWN[key]
       synset.hypernym = synset.hypernym.map IdsToHypernyms
 
+WORDNETIFY_SYNSETS_TREE = new Tree WORDNETIFY_SYNSETS_TREE
+
 class Word
   constructor: (@lemma, @part_of_speech = null) ->
   getSynsets: (callback) ->
@@ -30,7 +33,7 @@ class Word
     isContained = (words) =>
       return words.some (w) =>
         w.lemma == @lemma
-    for key, synset of WORDNETIFY_SYNSETS_TREE
+    for own key, synset of WORDNETIFY_SYNSETS_TREE
       contained = isContained(synset.words)
       correctPOS = if @part_of_speech then @part_of_speech == synset.pos else true
       if contained is true and correctPOS

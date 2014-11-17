@@ -7,16 +7,13 @@ mime      = require 'mime'
 BPromise  = require 'bluebird'
 util      = require 'util'
 
-{getCorpusSynsets}    = require "./synsetRepresentation"
-{constructSynsetData} = require "./constructSynsetData"
-pickSynsets           = require "./pickSynsets"
-getCorpusTree         = require "./corpusTree"
-thresholdTree         = require "./thresholdTree"
-
-###
-thresholdTree = require("./pruneTree.js");
-propagateWords = require("./propagateWords.js");
-###
+{ getCorpusSynsets }            = require "./synsetRepresentation"
+{ constructSynsetData }         = require "./constructSynsetData"
+pickSynsets                     = require "./pickSynsets"
+{ generateCorpusTree, generateWordTree } = require "./treeGenerator"
+thresholdTree                   = require "./thresholdTree"
+calculateCounts                 = require "./counting"
+{ thresholdDocTree, thresholdWordTree } = require "./thresholdTree"
 
 createWordNetTree = (corpus) ->
     console.time "Step 1: Retrieve Synset Data"
@@ -42,11 +39,28 @@ createWordNetTree = (corpus) ->
     BPromise.all(fPrunedDocTrees).then (prunedDocTrees) =>
       console.timeEnd("Step 3: Pruning (Word Sense Disambiguation)")
       outputJSON = ''
-      if program.combine
-        finalTree = getCorpusTree(prunedDocTrees)
-        if program.threshold
-          finalTree = thresholdTree(finalTree, program.threshold)
 
+      if program.combine
+        corpusTree = generateCorpusTree(prunedDocTrees)
+        finalTree = calculateCounts(corpusTree)
+        if program.threshold
+          finalTree = thresholdDocTree(finalTree, program.threshold)
+        ret = {}
+        ret.tree = finalTree
+        ret.corpus = corpus
+        outputJSON = if program.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+      else
+        ret = prunedDocTrees.map((doc) => generateWordTree(doc))
+                            .map( (doc) => calculateCounts(doc) )
+        if program.threshold
+          ret = ret.map( (tree) => thresholdWordTree(tree))
+
+        outputJSON = if program.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+
+      if program.output
+        fs.writeFileSync(program.output, outputJSON)
+      else
+        console.log(outputJSON)
 
 
 ###
@@ -85,31 +99,3 @@ else if (program.input)
         corpus = output.map( (d) => d[0] )
         createWordNetTree(corpus)
       )
-
-###
-function createWordNetTree(corpus){
-
-  var outputJSON;
-  if (program.combine){
-    var finalTree = mergeDocTrees(prunedDocTrees);
-    if (program.threshold){
-      finalTree = thresholdTree(finalTree, program.threshold);
-    }
-    var finalTreePropagated = propagateWords(finalTree);
-    var ret = {};
-    ret.tree = finalTreePropagated;
-    ret.corpus = corpus;
-    outputJSON = program.pretty ? JSON.stringify(ret, null, 2) : JSON.stringify(ret);
-  } else {
-    prunedDocTrees = prunedDocTrees.map(function(tree){
-      return propagateWords(tree);
-    });
-    outputJSON = program.pretty ? JSON.stringify(ret, null, 2) : JSON.stringify(ret);
-  }
-  if (program.output){
-    fs.writeFileSync(program.output, outputJSON);
-  } else {
-    console.log(outputJSON);
-  }
-}
-###

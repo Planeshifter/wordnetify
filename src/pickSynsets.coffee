@@ -2,6 +2,7 @@ _ = require "underscore"
 arr = require "./Array.js"
 logger = require "./logger"
 fs = require "fs"
+{ WORDNETIFY_SYNSETS_TREE }  = require "./synsetRepresentation"
 
 pickSynsets = (doc) ->
   for word, index in doc
