@@ -1,7 +1,7 @@
 util = require 'util'
 _    = require 'underscore'
 {SynsetNode} = require './constructSynsetData'
-{WORDNETIFY_SYNSETS_TREE} = require './synsetRepresentation'
+{WORDNETIFY_SYNSETS_TREE} = require './Tree'
 
 generateCorpusTree = (docs) =>
   hashTable = {}

@@ -7,24 +7,9 @@ memoize = require "./memoize"
 fs = require 'fs'
 str = require './String.js'
 arr = require './Array.js'
-Tree = require './Tree'
+{WORDNETIFY_SYNSETS_TREE} = require './Tree'
 
-SYNSETS_JSON = fs.readFileSync(__dirname + '/../data/SYNSETS.json')
-WORDNETIFY_SYNSETS_TREE = JSON.parse(SYNSETS_JSON)
-
-BROWN_JSON = fs.readFileSync(__dirname + '/../data/BROWN.json')
-BROWN = JSON.parse(BROWN_JSON);
-
-BROWN_COUNTS = _.countBy(BROWN, (freq) => return freq)
-
-IdsToHypernyms = (id) -> WORDNETIFY_SYNSETS_TREE[id]
-
-for key, synset of WORDNETIFY_SYNSETS_TREE
-    if WORDNETIFY_SYNSETS_TREE.hasOwnProperty(key)
-      synset.tagCount = BROWN[key]
-      synset.hypernym = synset.hypernym.map IdsToHypernyms
-
-WORDNETIFY_SYNSETS_TREE = new Tree WORDNETIFY_SYNSETS_TREE
+console.log WORDNETIFY_SYNSETS_TREE.depth('100003553')
 
 class Word
   constructor: (@lemma, @part_of_speech = null) ->
@@ -191,4 +176,7 @@ createDocTree = (wordArray) ->
 
 getWordSynsets = memoize( (word) => word.getSynsets() )
 
-module.exports = exports = {getCorpusSynsets: getCorpusSynsets, Word: Word, WORDNETIFY_SYNSETS_TREE: WORDNETIFY_SYNSETS_TREE};
+module.exports = exports = {
+  getCorpusSynsets: getCorpusSynsets,
+  Word: Word
+}

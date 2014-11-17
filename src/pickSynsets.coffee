@@ -2,7 +2,7 @@ _ = require "underscore"
 arr = require "./Array.js"
 logger = require "./logger"
 fs = require "fs"
-{ WORDNETIFY_SYNSETS_TREE }  = require "./synsetRepresentation"
+{ WORDNETIFY_SYNSETS_TREE }  = require "./Tree"
 
 pickSynsets = (doc) ->
   for word, index in doc
@@ -11,8 +11,7 @@ pickSynsets = (doc) ->
       similarities = []
       for word2, index2 in doc
         if index != index2
-          dists = word2.map (synset2) => 0
-            #tree.jiangConrathSimilarity(synset, synset2)
+          dists = word2.map (synset2) => WORDNETIFY_SYNSETS_TREE.jiangConrathSimilarity(synset.synsetid, synset2.synsetid)
           similarities.push(dists.max())
       synset.score = similarities.sum()
       scores.push(synset.score)
