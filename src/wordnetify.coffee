@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+`#!/usr/bin/env node`
 
 program   = require 'commander'
 fs        = require 'fs'
@@ -28,12 +28,12 @@ createWordNetTree = (corpus) ->
       console.time(docTreeMsg)
       wordTrees = d.map( (w) => constructSynsetData(w, index) )
       BPromise.all(wordTrees).then console.timeEnd(docTreeMsg)
-      return wordTrees
+      return wordTrees.filter( (word) => word != null )
     )
     BPromise.all(docTrees).then () =>
       console.timeEnd "Step 2: Generate Candidate Sets"
       console.time "Step 3: Pruning (Word Sense Disambiguation)"
-    fPrunedDocTrees = docTrees.map( (doc) =>
+    fPrunedDocTrees = docTrees.filter( (doc) => doc != null).map( (doc) =>
       pickSynsets(doc)
     )
     BPromise.all(fPrunedDocTrees).then (prunedDocTrees) =>

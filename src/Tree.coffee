@@ -33,8 +33,6 @@ class Tree
   getAncestorIDs: (node) ->
     debugger
     ret = []
-    console.log "get ancestor ids"
-    console.log node
     if (node.hypernym.length > 0)
       ret.push(node.hypernym[0].synsetid)
       ret = ret.concat(@getAncestorIDs(@[node.hypernym[0].synsetid]))
@@ -60,12 +58,8 @@ class Tree
   jiangConrathSimilarity: (id1, id2) ->
     node1 = @[id1]
     node2 = @[id2]
-    console.log node1
-    console.log node2
-    console.log "---------------------"
     ic1 = @getInformation(node1)
     ic2 = @getInformation(node2)
-    console.log 'bin weiter'
     least_common_subsumer = @lowestCommonHypernym(node1, node2)
     ic_lcs = least_common_subsumer ? 0 : getInformation(@[least_common_subsumer])
     return - ic1 - ic2 + 2 * ic_lcs

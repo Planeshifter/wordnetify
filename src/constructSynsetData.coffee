@@ -6,12 +6,10 @@ constructSynsetData = (word, docIndex) ->
     word.synsets = word.synsets.map (s) => new SynsetNode(s, docIndex, word)
   else
     word.synsets = null
-  console.log word.synsets
   return word.synsets
 
 class SynsetNode
   constructor: (synset, docIndex, word = {}) ->
-    console.log docIndex
     @synsetid = synset.synsetid
     @isCandidate = if not _.isEmpty(word) then true else false
     @data = synset

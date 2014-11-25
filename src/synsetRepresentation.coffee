@@ -9,8 +9,6 @@ str = require './String.js'
 arr = require './Array.js'
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
 
-console.log WORDNETIFY_SYNSETS_TREE.depth('100003553')
-
 class Word
   constructor: (@lemma, @part_of_speech = null) ->
   getSynsets: (callback) ->
@@ -160,7 +158,6 @@ getCorpusSynsets = (docs) ->
 
 createDocTree = (wordArray) ->
   baseWordArray = wordArray.map (x) =>
-    console.log(morphy x.string, "n")
     x.baseWords = morphy x.string, "n"
     logger.log "info","Morphy base words", {x:x}
     return x
