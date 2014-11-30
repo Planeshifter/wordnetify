@@ -60,7 +60,7 @@ createWordNetTree = (corpus, options) ->
     fPrunedDocTrees = docTrees.filter( (doc) => doc != null).map( (doc) =>
       pickSynsets(doc)
     )
-    BPromise.all(fPrunedDocTrees).then (prunedDocTrees) =>
+    BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
       console.timeEnd("Step 3: Pruning (Word Sense Disambiguation)")
       outputJSON = ''
 
@@ -85,13 +85,28 @@ createWordNetTree = (corpus, options) ->
         fs.writeFileSync(options.output, outputJSON)
       else
         console.log(outputJSON)
+      return
+      ).then( (d) =>
+        console.log "Job successfully completed."
+        process.exit(code=0)
+      )
+      .catch( (e) =>
+        console.log "Job aborted with errors."
+        process.exit(code=1)
+      )
 
 generatePDF = (options) ->
-  console.log 'bin drin'
   file = fs.readFileSync(options.input)
   synsetTree = JSON.parse(file)
-  console.log(synsetTree)
-  writePDF(synsetTree, options.output)
+  writeStream = writePDF(synsetTree, options.output)
+  writeStream
+    .on("close", () =>
+      console.log "Job successfully completed."
+      process.exit(code=0)
+    ).on("error", () =>
+      console.log "Job aborted with errors."
+      process.exit(code=1)
+    )
 
 ###
 Command-Line-Interface:
@@ -105,7 +120,7 @@ program
   .command('PDF')
   .description('generate pdf report')
   .option('-i, --input [value]', 'Input JSON synset tree file')
-  .option('-o, --output [value]', 'File name')
+  .option('-o, --output [value]', 'File name of generated PDF')
   .action(generatePDF)
 
 program

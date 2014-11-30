@@ -1,78 +1,115 @@
 PDFDocument = require 'pdfkit'
 fs = require 'fs'
+util = require 'util'
 
 writePDF = (output, filename) ->
-  # Create a document
-  doc = new PDFDocument
+  if (Array.isArray(output))
+    # receive an Array of documents
+    return writeDocPdfReport(output, filename)
+  else
+    # receive a single object containing two keys:
+    #   tree: synset trees
+    #   corpus: original texts
+    return writeCorpusPdfReport(output, filename)
 
-  # Pipe it's output somewhere, like to a file or HTTP response
-  # See below for browser usage
-  doc.pipe fs.createWriteStream(filename)
+walkTree = (current, parent) ->
+    if current.children.length == 1 and parent != null
+      child = current.children[0]
+      walkTree(child, current)
+      if current.words != null
+        current_word_lemmas = Object.keys(current.words)
+        current_child_lemmas = current.children.filter((c) =>
+           return c.words != null
+         ).map( (c) =>
+           return Object.keys(c.words)
+         ).reduce((a,b) =>
+           return a.concat(b)
+         ,[])
+      return;
 
-  leafs = []
-  for key, value of output.tree
-    if value.isCandidate == true then leafs.push(value)
+    if current.children.length == 0
+      return;
 
-  console.log leafs
+    if current.children.length > 1 or parent == null
+      current.children.forEach((child) =>
+        walkTree(child, current);
+      )
+      return
 
+formD3Tree = (tree) ->
+  # initialize child arrays
+  for key of tree
+  	tree[key].children = []
+  tree["root"] = {}
+  tree["root"].children = []
+  for key of tree
+    currentNode = tree[key]
+    if currentNode.parentId and tree[currentNode.parentId]
+    	tree[currentNode.parentId].children.push(currentNode)
+
+  walkTree(tree["root"], null)
+  return tree["root"]
+
+# renders the title page of the guide
+renderTitlePage = (doc, filename) ->
+  title = 'Corpus: ' + filename.split(".")[0]
+  subtitle = 'Synset Tree Output'
+  date = 'generated on ' + new Date().toDateString()
+  doc.y = doc.page.height / 2 - doc.currentLineHeight()
+  doc.font 'Helvetica'
+  doc.fontSize 20
+  doc.text title, align: 'left'
+  w = doc.widthOfString(title)
   doc.fontSize 16
-  doc.text 'Synsets',
-    width: 410,
-    align: 'center'
+  doc.text subtitle,
+    align: 'left'
+  indent: w - doc.widthOfString(subtitle)
+  doc.text date,
+    align: 'left'
+  indent: w - doc.widthOfString(date)
+  doc.addPage()
 
-  leafs.forEach( (synset, i) =>
+writeDocPdfReport = (output, filename) ->
+  console.log 'Should write DOC Reports'
+
+writeCorpusPdfReport = (output, filename) ->
+  # Create a document
+  doc = new PDFDocument()
+
+  # Set up a stream to write to
+  writeStream = fs.createWriteStream(filename)
+
+  # Pipe document output to file
+  doc.pipe writeStream
+
+  renderTitlePage(doc, filename)
+
+  root = formD3Tree(output.tree)
+
+  printSynset = (synset, depth) ->
     doc.fontSize 12
     doc.fillColor 'steelblue'
-    doc.text "Leaf: " + synset.data.words.map((e)=>e.lemma).join(", ")
+    doc.text synset.data.words.map((e)=>e.lemma).join(", ") + " (#{synset.wordCount}):"
     doc.fillColor 'black'
-    doc.fontSize 8
-    doc.text "Definition: #{synset.data.definition}"
-    doc.text "Number of Documents: #{synset.docCount} [appears in document: " + synset.docs.join(", ") + "]"
-    doc.text "Number of Words: #{synset.wordCount}"
-
     doc.fontSize 6
+    doc.text  synset.data.definition
+    doc.moveDown 1
+    doc.text "Number of Documents: #{synset.docCount}"
+    doc.text "[appears in document: " + synset.docs.join(", ") + "]"
     doc.text "Words:"
 
     wordString = ""
-    console.log synset
     for word, count of synset.words
-      console.log word
       wordString += word + "(" + count + "), "
 
     doc.text wordString,
       paragraphGap: 8
 
-    doc.fontSize 10
-    doc.text 'Hypernyms:'
-    ancestors = []
+    synset.children.forEach( (synset) => printSynset(synset, depth + 1))
 
-    current = synset
-    while current and current.parentId != "root"
-      ancestors.push(current.parentId)
-      console.log current.parentId
-      current = output.tree[current.parentId]
-
-    console.log ancestors
-    ancestors.forEach( (id, i) =>
-      hypernym = output.tree[id]
-      doc.fontSize 8
-      doc.fillColor 'steelblue'
-      doc.text Array(i+1).join("  ") + hypernym.data.words.map((e)=>e.lemma).join(", ")
-      doc.fillColor 'black'
-      doc.text Array(i+1).join("  ") + "Definition: #{hypernym.data.definition}",
-        paragraphGap: 8
-      doc.fontSize 6
-      doc.text "Number of Documents: #{hypernym.docCount} [appears in document: " + hypernym.docs.join(", ") + "]"
-      doc.text "Number of Words: #{hypernym.wordCount}"
-      doc.text "Words:"
-      doc.fontSize 6
-      wordString = ""
-      for word, count of hypernym.words
-        wordString += word + "(" + count + "), "
-      doc.text wordString,
-        paragraphGap: 8,
-        align: "left"
-    )
+  root.children.forEach( (synset, index) =>
+    depth = 1
+    printSynset(synset, depth)
   )
 
   doc.addPage
@@ -84,15 +121,14 @@ writePDF = (output, filename) ->
 
   output.corpus.forEach( (txt, i) =>
     doc.font('Times-Roman')
-
     doc.fontSize 14
     doc.text "Document " + i + ":"
-
     doc.fontSize 10
     doc.text txt
   )
 
   # Finalize PDF file
   doc.end()
+  return writeStream
 
 module.exports = writePDF
