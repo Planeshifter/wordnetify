@@ -1,6 +1,8 @@
 PDFDocument = require 'pdfkit'
 fs = require 'fs'
 util = require 'util'
+_ = require 'underscore'
+arr = require './Array'
 
 writePDF = (output, filename) ->
   if (Array.isArray(output))
@@ -25,6 +27,8 @@ walkTree = (current, parent) ->
          ).reduce((a,b) =>
            return a.concat(b)
          ,[])
+         if current_word_lemmas.compare(current_child_lemmas) == true
+           current.flagged = true
       return;
 
     if current.children.length == 0
@@ -35,6 +39,26 @@ walkTree = (current, parent) ->
         walkTree(child, current);
       )
       return
+
+getNonFlaggedChild = (node) ->
+  if node.children[0].flagged == true
+    return getNonFlaggedChild(node.children[0])
+  else
+    return node.children[0]
+
+removeFlaggedNodes = (current) ->
+  current.children.forEach( (child) =>
+    if child.flagged == true and child.parentId != "root"
+      insertNode = getNonFlaggedChild(child)
+      current.children = current.children.filter((e) =>
+        return e.data.synsetid != child.data.synsetid
+      )
+      current.children.push(insertNode)
+      removeFlaggedNodes(insertNode)
+    else
+      removeFlaggedNodes(child)
+  )
+
 
 formD3Tree = (tree) ->
   # initialize child arrays
@@ -48,6 +72,7 @@ formD3Tree = (tree) ->
     	tree[currentNode.parentId].children.push(currentNode)
 
   walkTree(tree["root"], null)
+  removeFlaggedNodes(tree["root"])
   return tree["root"]
 
 # renders the title page of the guide
@@ -89,20 +114,43 @@ writeCorpusPdfReport = (output, filename) ->
   printSynset = (synset, depth) ->
     doc.fontSize 12
     doc.fillColor 'steelblue'
-    doc.text synset.data.words.map((e)=>e.lemma).join(", ") + " (#{synset.wordCount}):"
+    doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (#{synset.wordCount}):"
     doc.fillColor 'black'
     doc.fontSize 6
-    doc.text  synset.data.definition
+    doc.text Array(depth).join(" ") + synset.data.definition
     doc.moveDown 1
-    doc.text "Number of Documents: #{synset.docCount}"
-    doc.text "[appears in document: " + synset.docs.join(", ") + "]"
-    doc.text "Words:"
+    doc.text Array(depth).join(" ") + "Number of Documents: #{synset.docCount}"
+    doc.text Array(depth).join(" ") + "[appears in document: " + synset.docs.join(", ") + "]"
+    doc.text Array(depth).join(" ") + "Words:"
 
-    wordString = ""
-    for word, count of synset.words
-      wordString += word + "(" + count + "), "
+    wordStringArr = []
 
-    doc.text wordString,
+    wordArr = _.map(synset.words, (count, key) =>
+      o = {}
+      o.word = key
+      o.count = count
+      return o
+    ).sort( (a, b) =>
+      b.count - a.count
+    )
+
+    for obj, i in wordArr
+      index = Math.floor(i/12)
+      if index < 5
+        if not wordStringArr[index]
+          wordStringArr[index] = obj.word + "(" + obj.count + "), "
+        else
+          wordStringArr[index] += obj.word + "(" + obj.count + "), "
+      else
+        wordStringArr[index] = "..."
+        break
+
+    spaces = Array(depth).join(" ")
+    for string in wordStringArr
+      printString = spaces + string
+      doc.text printString
+
+    doc.text spaces,
       paragraphGap: 8
 
     synset.children.forEach( (synset) => printSynset(synset, depth + 1))

@@ -136,6 +136,8 @@ getCorpusSynsets = (docs) ->
         .clean()
         .removeWords(tm.STOPWORDS.EN)
         .clean()
+        .removeDigits()
+        
     wordArrays = corpus.documents.map (x) => x.split " "
     logger.log "info", "This is the array of word arrays", {wordArrays: wordArrays}
     wordArrays = wordArrays.map (arr) =>
