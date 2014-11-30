@@ -14,10 +14,34 @@ pickSynsets                     = require "./pickSynsets"
 thresholdTree                   = require "./thresholdTree"
 calculateCounts                 = require "./counting"
 { thresholdDocTree, thresholdWordTree } = require "./thresholdTree"
+writePDF = require "./writePDF"
 
-createWordNetTree = (corpus) ->
+prepareWordnetTree = (options) ->
+  console.log options.delim
+  corpus;
+  delim = options.delim
+
+  if options.list
+    delim = delim or ";"
+    corpus = options.list.split(delim)
+    createWordNetTree(corpus, options)
+  else if (options.input)
+    data = fs.readFileSync(options.input)
+    mime_type = mime.lookup(options.input)
+    switch mime_type
+      when "text/plain"
+        delim = delim or "  "
+        corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
+        createWordNetTree(corpus, options)
+      when "text/csv"
+        csv.parse(String(data), (err, output) =>
+          corpus = output.map( (d) => d[0] )
+          createWordNetTree(corpus, options)
+        )
+
+createWordNetTree = (corpus, options) ->
     console.time "Step 1: Retrieve Synset Data"
-    wordTreshold = if program.threshold then program.threshold else  1
+    wordTreshold = if options.threshold then options.threshold else  1
     synsetArray = getCorpusSynsets(corpus)
     BPromise.all(synsetArray).then () =>
       console.timeEnd "Step 1: Retrieve Synset Data"
@@ -40,28 +64,34 @@ createWordNetTree = (corpus) ->
       console.timeEnd("Step 3: Pruning (Word Sense Disambiguation)")
       outputJSON = ''
 
-      if program.combine
+      if options.combine
         corpusTree = generateCorpusTree(prunedDocTrees)
         finalTree = calculateCounts(corpusTree)
-        if program.threshold
+        if options.threshold
           finalTree = thresholdDocTree(finalTree, program.threshold)
         ret = {}
         ret.tree = finalTree
         ret.corpus = corpus
-        outputJSON = if program.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+        outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
       else
-        ret = prunedDocTrees.map((doc) => generateWordTree(doc))
+        ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
                             .map( (doc) => calculateCounts(doc) )
-        if program.threshold
+        if options.threshold
           ret = ret.map( (tree) => thresholdWordTree(tree))
 
-        outputJSON = if program.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+        outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
 
-      if program.output
-        fs.writeFileSync(program.output, outputJSON)
+      if options.output
+        fs.writeFileSync(options.output, outputJSON)
       else
         console.log(outputJSON)
 
+generatePDF = (options) ->
+  console.log 'bin drin'
+  file = fs.readFileSync(options.input)
+  synsetTree = JSON.parse(file)
+  console.log(synsetTree)
+  writePDF(synsetTree, options.output)
 
 ###
 Command-Line-Interface:
@@ -69,6 +99,18 @@ Command-Line-Interface:
 
 program
   .version('0.2.1')
+  .option('-v, --verbose','Print additional logging information')
+
+program
+  .command('PDF')
+  .description('generate pdf report')
+  .option('-i, --input [value]', 'Input JSON synset tree file')
+  .option('-o, --output [value]', 'File name')
+  .action(generatePDF)
+
+program
+  .command('JSON')
+  .description('export synset tree to JSON format')
   .option('-i, --input [value]', 'Load data from disk')
   .option('-l, --list <items>','A list of input texts')
   .option('-o, --output [value]', 'Write results to file')
@@ -76,26 +118,7 @@ program
   .option('-c, --combine','Merge document trees to form corpus tree')
   .option('-d, --delim [value]','Delimiter to split text into documents')
   .option('-p, --pretty','Pretty print of JSON output')
-  .option('-v, --verbose','Print additional logging information')
+  .action(prepareWordnetTree)
+
+program
   .parse(process.argv)
-
-corpus;
-delim = program.delim
-
-if program.list
-  delim = delim or ";"
-  corpus = program.list.split(delim)
-  createWordNetTree(corpus)
-else if (program.input)
-  data = fs.readFileSync(program.input)
-  mime_type = mime.lookup(program.input)
-  switch mime_type
-    when "text/plain"
-      delim = delim or "  "
-      corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
-      createWordNetTree(corpus)
-    when "text/csv"
-      csv.parse(String(data), (err, output) =>
-        corpus = output.map( (d) => d[0] )
-        createWordNetTree(corpus)
-      )
