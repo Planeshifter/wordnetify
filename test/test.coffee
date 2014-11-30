@@ -1,3 +1,4 @@
+_ = require 'underscore'
 chai = require "chai"
 chaiAsPromised = require "chai-as-promised"
 chai.use(chaiAsPromised)
@@ -12,7 +13,6 @@ should = chai.should()
 { constructSynsetData, SynsetNode }         = require "../lib/constructSynsetData"
 pickSynsets                     = require "../lib/pickSynsets"
 { generateCorpusTree, generateWordTree } = require "../lib/treeGenerator"
-thresholdTree                   = require "../lib/thresholdTree"
 calculateCounts                 = require "../lib/counting"
 { thresholdDocTree, thresholdWordTree } = require "../lib/thresholdTree"
 
@@ -25,6 +25,16 @@ describe "Analyze a single document", () ->
   )
   fPrunedDocTrees = docTrees.filter( (doc) => doc != null).map( (doc) =>
     pickSynsets(doc)
+  )
+  fCorpusTree = BPromise.all(fPrunedDocTrees).then( (docTrees) =>
+    return generateCorpusTree(docTrees)
+  )
+  fFinalTree = fCorpusTree.then( (corpusTree) => calculateCounts(corpusTree) )
+
+  thresholdLevel = 2
+  fThresholdedTree = fFinalTree.then( (finalTree) =>
+    returnTree = _.clone(finalTree)
+    thresholdDocTree(returnTree, thresholdLevel)
   )
 
   describe "getCorpusSynsets():", () =>
@@ -41,3 +51,36 @@ describe "Analyze a single document", () ->
     it "should pick a single synset depending on similarity scores", () =>
       assertions = []
       fPrunedDocTrees.forEach( (w) => w.forEach( (k) => assertions.push(expect(k).to.have.property("synsetid") )))
+  describe "generateCorpusTree()", () =>
+    it "should create a hash table holding all tree synsets", () =>
+      assertions = []
+      fCorpusTree.then( (corpusTree) =>
+        fPrunedDocTrees.forEach( (w) =>
+          w.forEach( (k) =>
+            assertions.push( expect(corpusTree).to.have.property(k.synsetid) )
+          )
+        )
+      )
+  describe "calculateCounts()", () =>
+    it "should correctly calculate all word counts", () =>
+      fFinalTree.then( (finalTree) =>
+        for id, synset of finalTree
+          wordCount = _.reduce(synset.words, (memo, count) =>
+            memo + count
+          , 0)
+          expect(wordCount).to.be.equal(synset.wordCount)
+      )
+    it "should correctly calculate all document counts", () =>
+      fFinalTree.then( (finalTree) =>
+        for id, synset of finalTree
+          docCount = synset.docs.length
+          expect(docCount).to.be.equal(synset.docCount)
+      )
+
+  describe "thresholdDocTree()", () =>
+    it "should remove all synsets in the hash table with docCount < threshold", () =>
+      fThresholdedTree.then( (tree) =>
+        assertions = []
+        for id, synset of tree
+          assertions.push( expect(synset.docCount).to.be.at.least(thresholdLevel) )
+      )
