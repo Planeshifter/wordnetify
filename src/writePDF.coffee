@@ -4,15 +4,15 @@ util = require 'util'
 _ = require 'underscore'
 arr = require './Array'
 
-writePDF = (output, filename) ->
+writePDF = (output, filename, options = {}) ->
   if (Array.isArray(output))
     # receive an Array of documents
-    return writeDocPdfReport(output, filename)
+    return writeDocPdfReport(output, filename, options)
   else
     # receive a single object containing two keys:
     #   tree: synset trees
     #   corpus: original texts
-    return writeCorpusPdfReport(output, filename)
+    return writeCorpusPdfReport(output, filename, options)
 
 walkTree = (current, parent) ->
     if current.children.length == 1 and parent != null
@@ -94,10 +94,10 @@ renderTitlePage = (doc, filename) ->
   indent: w - doc.widthOfString(date)
   doc.addPage()
 
-writeDocPdfReport = (output, filename) ->
+writeDocPdfReport = (output, filename, options) ->
   console.log 'Should write DOC Reports'
 
-writeCorpusPdfReport = (output, filename) ->
+writeCorpusPdfReport = (output, filename, options) ->
   # Create a document
   doc = new PDFDocument()
 
@@ -112,46 +112,42 @@ writeCorpusPdfReport = (output, filename) ->
   root = formD3Tree(output.tree)
 
   printSynset = (synset, depth) ->
-    doc.fontSize 12
+    doc.fontSize 10
     doc.fillColor 'steelblue'
-    doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (#{synset.wordCount}):"
+    doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):"
     doc.fillColor 'black'
     doc.fontSize 6
     doc.text Array(depth).join(" ") + synset.data.definition
-    doc.moveDown 1
-    doc.text Array(depth).join(" ") + "Number of Documents: #{synset.docCount}"
-    doc.text Array(depth).join(" ") + "[appears in document: " + synset.docs.join(", ") + "]"
-    doc.text Array(depth).join(" ") + "Words:"
+    if options.docReferences then doc.text Array(depth).join(" ") + "[appears in document: " + synset.docs.join(", ") + "]"
 
-    wordStringArr = []
-
-    wordArr = _.map(synset.words, (count, key) =>
-      o = {}
-      o.word = key
-      o.count = count
-      return o
-    ).sort( (a, b) =>
-      b.count - a.count
-    )
-
-    for obj, i in wordArr
-      index = Math.floor(i/12)
-      if index < 5
-        if not wordStringArr[index]
-          wordStringArr[index] = obj.word + "(" + obj.count + "), "
+    if options.includeWords
+      doc.text Array(depth).join(" ") + "Words:"
+      wordStringArr = []
+      wordArr = _.map(synset.words, (count, key) =>
+        o = {}
+        o.word = key
+        o.count = count
+        return o
+      ).sort( (a, b) =>
+        b.count - a.count
+      )
+      for obj, i in wordArr
+        index = Math.floor(i/12)
+        if index < 5
+          if not wordStringArr[index]
+            wordStringArr[index] = obj.word + "(" + obj.count + "), "
+          else
+            wordStringArr[index] += obj.word + "(" + obj.count + "), "
         else
-          wordStringArr[index] += obj.word + "(" + obj.count + "), "
-      else
-        wordStringArr[index] = "..."
-        break
+          wordStringArr[index] = "..."
+          break
+      spaces = Array(depth).join(" ")
+      for string in wordStringArr
+        printString = spaces + string
+        doc.text printString
 
-    spaces = Array(depth).join(" ")
-    for string in wordStringArr
-      printString = spaces + string
-      doc.text printString
-
-    doc.text spaces,
-      paragraphGap: 8
+      doc.text spaces,
+        paragraphGap: 8
 
     synset.children.forEach( (synset) => printSynset(synset, depth + 1))
 
@@ -160,20 +156,22 @@ writeCorpusPdfReport = (output, filename) ->
     printSynset(synset, depth)
   )
 
-  doc.addPage
-  doc.fontSize 16
-  doc.fillColor 'black'
-  doc.text 'Corpus Documents',
-    width: 410,
-    align: 'center'
 
-  output.corpus.forEach( (txt, i) =>
-    doc.font('Times-Roman')
+  if options.includeDocs
+    doc.addPage
     doc.fontSize 14
-    doc.text "Document " + i + ":"
-    doc.fontSize 10
-    doc.text txt
-  )
+    doc.fillColor 'black'
+    doc.text 'Corpus Documents',
+      width: 410,
+      align: 'center'
+
+    output.corpus.forEach( (txt, i) =>
+      doc.font('Times-Roman')
+      doc.fontSize 12
+      doc.text "Document " + i + ":"
+      doc.fontSize 10
+      doc.text txt
+    )
 
   # Finalize PDF file
   doc.end()

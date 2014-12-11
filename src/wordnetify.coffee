@@ -17,7 +17,6 @@ calculateCounts                 = require "./counting"
 writePDF = require "./writePDF"
 
 prepareWordnetTree = (options) ->
-  console.log options.delim
   corpus;
   delim = options.delim
 
@@ -32,12 +31,18 @@ prepareWordnetTree = (options) ->
       when "text/plain"
         delim = delim or "  "
         corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
+        console.log 'Number of Documents to analyze: ' + corpus.length
         createWordNetTree(corpus, options)
       when "text/csv"
         csv.parse(String(data), (err, output) =>
           corpus = output.map( (d) => d[0] )
+          console.log 'Number of Documents to analyze: ' + corpus.length
           createWordNetTree(corpus, options)
         )
+      when "application/json"
+        corpus = JSON.parse(data)
+        console.log 'Number of Documents to analyze: ' + corpus.length
+        createWordNetTree(corpus, options)
 
 createWordNetTree = (corpus, options) ->
     console.time "Step 1: Retrieve Synset Data"
@@ -47,17 +52,18 @@ createWordNetTree = (corpus, options) ->
       console.timeEnd "Step 1: Retrieve Synset Data"
       console.time "Step 2: Generate Candidate Sets"
 
-    docTrees = synsetArray.map( (d, index) =>
+    fDocTrees = synsetArray.map( (d, index) =>
       docTreeMsg = "Construct Candidate Set for Words of Doc " + index
       console.time(docTreeMsg)
       wordTrees = d.map( (w) => constructSynsetData(w, index) )
       BPromise.all(wordTrees).then console.timeEnd(docTreeMsg)
       return wordTrees.filter( (word) => word != null )
     )
-    BPromise.all(docTrees).then () =>
+    BPromise.all(fDocTrees).then (docTrees) =>
       console.timeEnd "Step 2: Generate Candidate Sets"
       console.time "Step 3: Pruning (Word Sense Disambiguation)"
-    fPrunedDocTrees = docTrees.filter( (doc) => doc != null).map( (doc) =>
+
+    fPrunedDocTrees = BPromise.all(fDocTrees).filter( (doc) => doc != null).map( (doc) =>
       pickSynsets(doc)
     )
     BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
@@ -68,7 +74,7 @@ createWordNetTree = (corpus, options) ->
         corpusTree = generateCorpusTree(prunedDocTrees)
         finalTree = calculateCounts(corpusTree)
         if options.threshold
-          finalTree = thresholdDocTree(finalTree, program.threshold)
+          finalTree = thresholdDocTree(finalTree, options.threshold)
         ret = {}
         ret.tree = finalTree
         ret.corpus = corpus
@@ -98,7 +104,11 @@ createWordNetTree = (corpus, options) ->
 generatePDF = (options) ->
   file = fs.readFileSync(options.input)
   synsetTree = JSON.parse(file)
-  writeStream = writePDF(synsetTree, options.output)
+  pdfOptions = {}
+  pdfOptions.includeDocs = options.includeDocs
+  pdfOptions.includeWords = options.includeWords
+  pdfOptions.docReferences = options.docReferences
+  writeStream = writePDF(synsetTree, options.output, pdfOptions)
   writeStream
     .on("close", () =>
       console.log "Job successfully completed."
@@ -121,6 +131,9 @@ program
   .description('generate pdf report')
   .option('-i, --input [value]', 'Input JSON synset tree file')
   .option('-o, --output [value]', 'File name of generated PDF')
+  .option('-d, --includeDocs', 'Append documents to report')
+  .option('-r,--docReferences', 'Include document IDs for each synset')
+  .option('-w,--includeWords', 'Include words for each synset')
   .action(generatePDF)
 
 program

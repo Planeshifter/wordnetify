@@ -7,23 +7,21 @@ memoize = require "./memoize"
 fs = require 'fs'
 str = require './String.js'
 arr = require './Array.js'
+Parallel = require 'paralleljs'
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
+
+WORD_LOOKUP = JSON.parse(fs.readFileSync(__dirname + "/../data/LOOKUP.json"))
+
+for word, synsetidArr of WORD_LOOKUP
+  WORD_LOOKUP[word] = synsetidArr.map( (id) => WORDNETIFY_SYNSETS_TREE[id] )
 
 class Word
   constructor: (@lemma, @part_of_speech = null) ->
   getSynsets: (callback) ->
-    ret = []
-    isContained = (words) =>
-      return words.some (w) =>
-        w.lemma == @lemma
-    for own key, synset of WORDNETIFY_SYNSETS_TREE
-      contained = isContained(synset.words)
-      correctPOS = if @part_of_speech then @part_of_speech == synset.pos else true
-      if contained is true and correctPOS
-        insert_synset = _.clone(synset)
-        ret.push(insert_synset)
+    ret = if WORD_LOOKUP[@lemma] then WORD_LOOKUP[@lemma] else []
+    ret = ret
+      .filter( (synset) => if @part_of_speech then synset.pos == @part_of_speech else true)
     return ret
-
 
 DICTIONARY = JSON.parse(fs.readFileSync(__dirname + "/../data/DICTIONARY.json"))
 EXCEPTIONS = JSON.parse(fs.readFileSync(__dirname + "/../data/EXCEPTIONS.json"))
@@ -137,7 +135,10 @@ getCorpusSynsets = (docs) ->
         .removeWords(tm.STOPWORDS.EN)
         .clean()
         .removeDigits()
-        
+        .removeInvalidCharacters()
+
+    console.log corpus.documents
+
     wordArrays = corpus.documents.map (x) => x.split " "
     logger.log "info", "This is the array of word arrays", {wordArrays: wordArrays}
     wordArrays = wordArrays.map (arr) =>
