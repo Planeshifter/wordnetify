@@ -1,11 +1,13 @@
 `#!/usr/bin/env node`
 
-program   = require 'commander'
-fs        = require 'fs'
-csv       = require 'csv'
-mime      = require 'mime'
-BPromise  = require 'bluebird'
-util      = require 'util'
+program     = require 'commander'
+fs          = require 'fs'
+csv         = require 'csv'
+mime        = require 'mime'
+BPromise    = require 'bluebird'
+util        = require 'util'
+rp          = require 'request-promise'
+querystring = require 'querystring'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
@@ -50,24 +52,15 @@ createWordNetTree = (corpus, options) ->
     synsetArray = getCorpusSynsets(corpus)
     BPromise.all(synsetArray).then () =>
       console.timeEnd "Step 1: Retrieve Synset Data"
-      console.time "Step 2: Generate Candidate Sets"
 
-    fDocTrees = synsetArray.map( (d, index) =>
-      docTreeMsg = "Construct Candidate Set for Words of Doc " + index
-      console.time(docTreeMsg)
-      wordTrees = d.map( (w) => constructSynsetData(w, index) )
-      BPromise.all(wordTrees).then console.timeEnd(docTreeMsg)
-      return wordTrees.filter( (word) => word != null )
-    )
-    BPromise.all(fDocTrees).then (docTrees) =>
-      console.timeEnd "Step 2: Generate Candidate Sets"
-      console.time "Step 3: Pruning (Word Sense Disambiguation)"
+    fPrunedDocTrees = synsetArray.map( (d, index) =>
+      postData = {doc : JSON.stringify(d), index: index}
+      return rp.post(
+          'http://localhost:8000/getBestSynsets',
+          { body: querystring.stringify(postData)}).then( (response) => JSON.parse(response))
+    ).filter( (doc) => doc != null)
 
-    fPrunedDocTrees = BPromise.all(fDocTrees).filter( (doc) => doc != null).map( (doc) =>
-      pickSynsets(doc)
-    )
     BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
-      console.timeEnd("Step 3: Pruning (Word Sense Disambiguation)")
       outputJSON = ''
 
       if options.combine
