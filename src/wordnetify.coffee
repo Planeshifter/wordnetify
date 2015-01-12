@@ -1,13 +1,14 @@
 `#!/usr/bin/env node`
 
-program     = require 'commander'
-fs          = require 'fs'
-csv         = require 'csv'
-mime        = require 'mime'
-BPromise    = require 'bluebird'
-util        = require 'util'
-rp          = require 'request-promise'
-querystring = require 'querystring'
+program       = require 'commander'
+fs            = require 'fs'
+csv           = require 'csv'
+mime          = require 'mime'
+BPromise      = require 'bluebird'
+util          = require 'util'
+rp            = require 'request-promise'
+querystring   = require 'querystring'
+child_process = require 'child_process'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
@@ -17,6 +18,7 @@ thresholdTree                   = require "./thresholdTree"
 calculateCounts                 = require "./counting"
 { thresholdDocTree, thresholdWordTree } = require "./thresholdTree"
 writePDF = require "./writePDF"
+cluster = {}
 
 prepareWordnetTree = (options) ->
   corpus;
@@ -25,7 +27,11 @@ prepareWordnetTree = (options) ->
   if options.list
     delim = delim or ";"
     corpus = options.list.split(delim)
-    createWordNetTree(corpus, options)
+    cluster.server = child_process.fork(__dirname + '/cluster.js')
+    cluster.server.on('message', (m) =>
+      console.log('Worker connection established:', m.msg);
+      createWordNetTree(corpus, options)
+    )
   else if (options.input)
     data = fs.readFileSync(options.input)
     mime_type = mime.lookup(options.input)
@@ -34,7 +40,11 @@ prepareWordnetTree = (options) ->
         delim = delim or "  "
         corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
         console.log 'Number of Documents to analyze: ' + corpus.length
-        createWordNetTree(corpus, options)
+        cluster = child_process.fork(__dirname + '/cluster.js')
+        cluster.on('message', (m) =>
+          console.log('PARENT got message:', m);
+          createWordNetTree(corpus, options)
+        )
       when "text/csv"
         csv.parse(String(data), (err, output) =>
           corpus = output.map( (d) => d[0] )
@@ -61,6 +71,7 @@ createWordNetTree = (corpus, options) ->
     ).filter( (doc) => doc != null)
 
     BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
+      cluster.server.kill('SIGKILL')
       outputJSON = ''
 
       if options.combine

@@ -1,6 +1,7 @@
 cluster = require('cluster')
 numCPUs = require('os').cpus().length
 workers = []
+workerCount = 0
 
 http        = require('http')
 url         = require('url')
@@ -14,12 +15,25 @@ if (cluster.isMaster)
   for i in [0...numCPUs]
     worker = cluster.fork()
     workers[i] = worker
-
   cluster.on('exit', (worker, code, signal) =>
     console.log('worker ' + worker.process.pid + ' died')
   )
+  cluster.on('online', (worker) =>
+    workerCount++;
+    if workerCount == numCPUs then console.log(workerCount + " workers online")
+  )
+
+  numServers = 0
+  messageHandler = (msg) ->
+    if (msg.cmd && msg.cmd == 'listening')
+      numServers += 1
+      if numCPUs == numServers then  process.send({ msg: 'Workers ready for data processing' });
+
+  Object.keys(cluster.workers).forEach((id) =>
+    cluster.workers[id].on('message', messageHandler)
+  )
 else
-  http.createServer((request, response) =>
+  server = http.createServer((request, response) =>
     if (request.method == 'POST')
       queryData = ''
       request.on('data', (data) =>
@@ -34,16 +48,16 @@ else
       request.on('end', () =>
         pathname = url.parse(request.url).pathname
         response.post = querystring.parse(queryData)
-        console.log(response.post)
-        # x = JSON.parse(response.post.data)
         switch pathname
           when "/getBestSynsets"
             console.log("Daten sind angekommen")
             getBestSynsets(response)
       )
-
-  ).listen(8000)
-
+  )
+  server.listen(8000)
+  server.on('listening',() =>
+    process.send({ cmd: 'listening' });
+  )
 
 getBestSynsets = (response) ->
   doc = JSON.parse(response.post.doc)
