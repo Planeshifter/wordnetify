@@ -1,5 +1,5 @@
 [![NPM version](https://badge.fury.io/js/wordnetify.svg)](http://badge.fury.io/js/wordnetify)
-[![Build Status](https://travis-ci.org/Planeshifter/node-wordnetify.svg?branch=master)](https://travis-ci.org/Planeshifter/node-wordnetify)
+[![Build Status](https://travis-ci.org/Planeshifter/node-wordnetify.svg?branch=coffee)](https://travis-ci.org/Planeshifter/node-wordnetify)
 
 node-wordnetify
 ===============
