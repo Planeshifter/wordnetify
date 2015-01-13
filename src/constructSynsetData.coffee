@@ -12,7 +12,11 @@ class SynsetNode
   constructor: (synset, docIndex, word = {}) ->
     @synsetid = synset.synsetid
     @isCandidate = if not _.isEmpty(word) then true else false
-    @data = synset
+    @data =
+      { definition:  synset.definition,
+      lexdomain: synset.lexdomain,
+      pos: synset.pos,
+      words: synset.words }
     @wordCount = word.count or 1
     @docs = if docIndex? then [docIndex] else []
     @docCount = 1

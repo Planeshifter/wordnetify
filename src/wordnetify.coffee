@@ -9,6 +9,7 @@ util          = require 'util'
 rp            = require 'request-promise'
 querystring   = require 'querystring'
 child_process = require 'child_process'
+ProgressBar      = require 'progress'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
@@ -35,26 +36,28 @@ prepareWordnetTree = (options) ->
   else if (options.input)
     data = fs.readFileSync(options.input)
     mime_type = mime.lookup(options.input)
+
+    createWordNetTreeCluster = (corpus, options) ->
+       console.log 'Number of Documents to analyze: ' + corpus.length
+       cluster.server = child_process.fork(__dirname + '/cluster.js')
+       cluster.server.on('message', (m) =>
+         console.log('Worker connection established:', m);
+         createWordNetTree(corpus, options)
+       )
+
     switch mime_type
       when "text/plain"
         delim = delim or "  "
         corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
-        console.log 'Number of Documents to analyze: ' + corpus.length
-        cluster = child_process.fork(__dirname + '/cluster.js')
-        cluster.on('message', (m) =>
-          console.log('PARENT got message:', m);
-          createWordNetTree(corpus, options)
-        )
+        createWordNetTreeCluster(corpus, options)
       when "text/csv"
         csv.parse(String(data), (err, output) =>
           corpus = output.map( (d) => d[0] )
-          console.log 'Number of Documents to analyze: ' + corpus.length
-          createWordNetTree(corpus, options)
+          createWordNetTreeCluster(corpus, options)
         )
       when "application/json"
         corpus = JSON.parse(data)
-        console.log 'Number of Documents to analyze: ' + corpus.length
-        createWordNetTree(corpus, options)
+        createWordNetTreeCluster(corpus, options)
 
 createWordNetTree = (corpus, options) ->
     console.time "Step 1: Retrieve Synset Data"
@@ -63,11 +66,16 @@ createWordNetTree = (corpus, options) ->
     BPromise.all(synsetArray).then () =>
       console.timeEnd "Step 1: Retrieve Synset Data"
 
+    progressGetBestSynsets = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: synsetArray.length })
     fPrunedDocTrees = synsetArray.map( (d, index) =>
       postData = {doc : JSON.stringify(d), index: index}
-      return rp.post(
+      res = rp.post(
           'http://localhost:8000/getBestSynsets',
-          { body: querystring.stringify(postData)}).then( (response) => JSON.parse(response))
+          { body: querystring.stringify(postData)})
+          .then( (response) =>
+            progressGetBestSynsets.tick()
+            JSON.parse(response)
+          )
     ).filter( (doc) => doc != null)
 
     BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
@@ -75,6 +83,7 @@ createWordNetTree = (corpus, options) ->
       outputJSON = ''
 
       if options.combine
+        # synsetData = getRelevantSynsets(prunedDocTrees)
         corpusTree = generateCorpusTree(prunedDocTrees)
         finalTree = calculateCounts(corpusTree)
         if options.threshold
@@ -82,6 +91,7 @@ createWordNetTree = (corpus, options) ->
         ret = {}
         ret.tree = finalTree
         ret.corpus = corpus
+        # ret.synsetData = synsetData
         outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
       else
         ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
@@ -101,6 +111,7 @@ createWordNetTree = (corpus, options) ->
         process.exit(code=0)
       )
       .catch( (e) =>
+        console.log(e)
         console.log "Job aborted with errors."
         process.exit(code=1)
       )

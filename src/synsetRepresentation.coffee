@@ -2,6 +2,7 @@ tm = require "text-miner"
 BPromise = require "bluebird"
 _ = require "underscore"
 util = require "util"
+ProgressBar = require 'progress'
 logger = require "./logger"
 memoize = require "./memoize"
 fs = require 'fs'
@@ -136,8 +137,7 @@ getCorpusSynsets = (docs) ->
         .clean()
         .removeDigits()
         .removeInvalidCharacters()
-
-    console.log corpus.documents
+    console.log 'Document pre-processing finished'
 
     wordArrays = corpus.documents.map (x) => x.split " "
     logger.log "info", "This is the array of word arrays", {wordArrays: wordArrays}
@@ -155,7 +155,11 @@ getCorpusSynsets = (docs) ->
       , []
       return res
     logger.log "info","This is the array of unique word arrays", {uniqueWordArrays: wordArrays}
-    res = wordArrays.map (arr) => createDocTree(arr)
+    progressCreateDocTree = new ProgressBar('Create document trees [:bar] :percent :etas', { total: wordArrays.length })
+    res = wordArrays.map (arr) =>
+      ret_tree = createDocTree(arr)
+      progressCreateDocTree.tick()
+      return ret_tree
     logger.log "info", "These are the doc synset Trees", {docTrees:res}
     return res
 

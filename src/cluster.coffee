@@ -38,10 +38,10 @@ else
       queryData = ''
       request.on('data', (data) =>
         queryData += data;
-        if(queryData.length > 1e6)
+        if(queryData.length > 1e9)
           # prevent data overload
           queryData = ""
-          response.writeHead(413, {'Content-Type': 'text/plain'}).end()
+          response.writeHead(413, {'Content-Type': 'text/plain'})?.end()
           request.connection.destroy()
           );
 
@@ -50,7 +50,7 @@ else
         response.post = querystring.parse(queryData)
         switch pathname
           when "/getBestSynsets"
-            console.log("Daten sind angekommen")
+            # console.log("Daten sind angekommen")
             getBestSynsets(response)
       )
   )
@@ -62,11 +62,11 @@ else
 getBestSynsets = (response) ->
   doc = JSON.parse(response.post.doc)
   index = response.post.index
-  docTreeMsg = "Construct Candidate Set for Words of Doc " + index
-  console.time(docTreeMsg)
+  # docTreeMsg = "Construct Candidate Set for Words of Doc " + index
+  # console.time(docTreeMsg)
   fWordTree = doc.map( (w) => constructSynsetData(w, index) )
   BPromise.all(fWordTree).then( (wordTree) =>
-    console.timeEnd(docTreeMsg)
+    # console.timeEnd(docTreeMsg)
     wordTree = wordTree.filter( (word) => word != null )
     if (wordTree)
       doc = pickSynsets(wordTree)
