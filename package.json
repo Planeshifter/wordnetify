@@ -26,7 +26,9 @@
     "wordnetify": "lib/wordnetify.js"
   },
   "dependencies": {
+    "bin-search-tree": "^0.6.2",
     "bluebird": "~2.3.5",
+    "bucketsjs": "^1.81.0",
     "commander": "~2.3.0",
     "csv": "~0.4.0",
     "graceful-fs": "^3.0.5",

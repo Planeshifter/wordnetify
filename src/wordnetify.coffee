@@ -78,7 +78,6 @@ createWordNetTree = (corpus, options) ->
         )
         .then( (req) =>
           progressCreateDocTree.tick()
-          JSON.parse(req)
         )
       fPrunedDocTrees.push fRequest
 
@@ -92,6 +91,7 @@ createWordNetTree = (corpus, options) ->
 
     queue.drain = () ->
       BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
+        prunedDocTrees = prunedDocTrees.map(JSON.parse)
         cluster.server.kill('SIGKILL')
         outputJSON = ''
 
