@@ -2,11 +2,13 @@ util = require 'util'
 _    = require 'underscore'
 {SynsetNode} = require './constructSynsetData'
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
+ProgressBar   = require 'progress'
 
 generateCorpusTree = (docs) =>
   hashTable = {}
   allSynsets = _.flatten(docs)
 
+  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent', { total: _.size(allSynsets) })
   attachHypernyms = (synset, words, docIndices) =>
     id = synset.synsetid
     if id not of hashTable
@@ -31,6 +33,7 @@ generateCorpusTree = (docs) =>
     if synset.parentId and synset.parentId != 'root'
       parent = WORDNETIFY_SYNSETS_TREE[synset.parentId]
       attachHypernyms(parent, synset.words, synset.docs)
+    progressCorpusTree.tick()
 
   return hashTable
 

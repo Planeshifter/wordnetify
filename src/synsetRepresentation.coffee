@@ -5,7 +5,7 @@ util = require "util"
 ProgressBar = require 'progress'
 logger = require "./logger"
 memoize = require "./memoize"
-fs = require 'fs'
+fs = require 'graceful-fs'
 str = require './String.js'
 arr = require './Array.js'
 Parallel = require 'paralleljs'
@@ -154,14 +154,7 @@ getCorpusSynsets = (docs) ->
           return a.concat(word)
       , []
       return res
-    logger.log "info","This is the array of unique word arrays", {uniqueWordArrays: wordArrays}
-    progressCreateDocTree = new ProgressBar('Create document trees [:bar] :percent :etas', { total: wordArrays.length })
-    res = wordArrays.map (arr) =>
-      ret_tree = createDocTree(arr)
-      progressCreateDocTree.tick()
-      return ret_tree
-    logger.log "info", "These are the doc synset Trees", {docTrees:res}
-    return res
+    return wordArrays
 
 createDocTree = (wordArray) ->
   baseWordArray = wordArray.map (x) =>
@@ -181,6 +174,7 @@ createDocTree = (wordArray) ->
 getWordSynsets = memoize( (word) => word.getSynsets() )
 
 module.exports = exports = {
+  createDocTree: createDocTree
   getCorpusSynsets: getCorpusSynsets,
   Word: Word
 }

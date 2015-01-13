@@ -1,7 +1,5 @@
 _ = require "underscore"
 arr = require "./Array.js"
-logger = require "./logger"
-fs = require "fs"
 { WORDNETIFY_SYNSETS_TREE }  = require "./Tree"
 
 pickSynsets = (doc) ->
@@ -16,7 +14,6 @@ pickSynsets = (doc) ->
       synset.score = similarities.sum()
       scores.push(synset.score)
     maxScore = scores.max()
-    logger.log("info","Score Array", {scores: scores, maxScore: maxScore})
     chosen = false
     flaggedRemoval = []
     for synset, index in word

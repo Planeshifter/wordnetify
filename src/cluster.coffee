@@ -9,6 +9,7 @@ BPromise    = require('bluebird')
 querystring = require('querystring')
 
 { constructSynsetData } = require "./constructSynsetData"
+{ createDocTree } = require "./synsetRepresentation"
 pickSynsets             = require "./pickSynsets"
 
 if (cluster.isMaster)
@@ -52,16 +53,26 @@ else
           when "/getBestSynsets"
             # console.log("Daten sind angekommen")
             getBestSynsets(response)
+          when "/getDocTree"
+            getDocTree(response)
       )
   )
+  server.setTimeout(0)
   server.listen(8000)
   server.on('listening',() =>
     process.send({ cmd: 'listening' });
   )
 
-getBestSynsets = (response) ->
+getDocTree = (response) ->
   doc = JSON.parse(response.post.doc)
   index = response.post.index
+  res = createDocTree(doc)
+  fMsg = getBestSynsets(res, index)
+  fMsg.then( (msg) =>
+    response.end(msg)
+  )
+
+getBestSynsets = (doc, index) ->
   # docTreeMsg = "Construct Candidate Set for Words of Doc " + index
   # console.time(docTreeMsg)
   fWordTree = doc.map( (w) => constructSynsetData(w, index) )
@@ -72,6 +83,5 @@ getBestSynsets = (response) ->
       doc = pickSynsets(wordTree)
     else
       doc = null
-    msg = JSON.stringify(doc)
-    response.end(msg)
+    return JSON.stringify(doc)
   )
