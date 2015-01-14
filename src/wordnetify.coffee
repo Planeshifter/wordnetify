@@ -5,11 +5,9 @@ mime          = require 'mime'
 BPromise      = require 'bluebird'
 util          = require 'util'
 rp            = require 'request-promise'
-request       = require 'request'
 querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
-async         = require 'async'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
@@ -64,30 +62,34 @@ createWordNetTree = (corpus, options) ->
     {wordArrays, vocab} = getCorpusSynsets(corpus)
     progressCreateDocTree = new ProgressBar('Create document trees + synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
 
+    active_jobs = 0
     fPrunedDocTrees = []
-
-    queuedPushing = (data) =>
-      fRequest = rp.post(
-          'http://localhost:8000/getDocTree',
-          { body: querystring.stringify(data)})
-      fRequest
-        .catch( (err) =>
-          console.log(err)
-        )
-        .then( (req) =>
-          progressCreateDocTree.tick()
-        )
-      fPrunedDocTrees.push fRequest
-
-    queue = async.queue( (postData, callback) =>
-      setImmediate(() => callback(postData) )
-    , 100)
-    wordArrays.forEach( (d, index) =>
-      postData = {doc : JSON.stringify(d), index: index}
-      queue.push(postData, queuedPushing)
-    )
-
-    queue.drain = () ->
+    nJobs = wordArrays.length
+    active_index = 0
+    nCPUS = require('os').cpus().length
+    myInterval = setInterval(() =>
+      if active_jobs <= nCPUS
+        if active_index == nJobs
+            clearInterval(myInterval)
+            processPrunedDocTrees()
+        active_jobs++
+        doc = wordArrays[active_index]
+        postData = {doc : JSON.stringify(doc), index: active_index}
+        fRequest = rp.post(
+            'http://localhost:8000/getDocTree',
+            { body: querystring.stringify(postData)})
+        fRequest
+          .catch( (err) =>
+            console.log(err)
+          )
+          .then( (req) =>
+            progressCreateDocTree.tick()
+            active_jobs--
+            active_index++
+          )
+        fPrunedDocTrees.push fRequest
+    , 500)
+    processPrunedDocTrees = () ->
       BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
         prunedDocTrees = prunedDocTrees.map(JSON.parse)
         cluster.server.kill('SIGKILL')
