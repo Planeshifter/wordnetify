@@ -1,0 +1,2 @@
+# ignore coffeescript source files, only ship *.js
+*.coffee

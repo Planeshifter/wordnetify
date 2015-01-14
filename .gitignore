@@ -2,6 +2,11 @@
 logs
 *.log
 
+# JavaScript
+
+*.js
+*.js.map
+
 # Runtime data
 pids
 *.pid

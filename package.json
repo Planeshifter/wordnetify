@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "test": "mocha test/test.coffee --compilers coffee:coffee-script/register"
+    "prepublish": "grunt"
   },
   "repository": {
     "type": "git",

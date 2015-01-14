@@ -47,7 +47,6 @@ generateCorpusTree = (docs) =>
   bsTree.forEach((value, key) =>
     hashTable[key] = value
   )
-
   return hashTable
 
 generateWordTree = (doc) =>
