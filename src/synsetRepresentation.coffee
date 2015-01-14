@@ -3,18 +3,30 @@ BPromise = require "bluebird"
 _ = require "underscore"
 util = require "util"
 ProgressBar = require 'progress'
-logger = require "./logger"
 memoize = require "./memoize"
 fs = require 'graceful-fs'
 str = require './String.js'
 arr = require './Array.js'
-Parallel = require 'paralleljs'
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
 
 WORD_LOOKUP = JSON.parse(fs.readFileSync(__dirname + "/../data/LOOKUP.json"))
 
 for word, synsetidArr of WORD_LOOKUP
   WORD_LOOKUP[word] = synsetidArr.map( (id) => WORDNETIFY_SYNSETS_TREE[id] )
+
+class Vocabulary
+  constructor: () ->
+    @dict = new Map()
+  add: (word) ->
+    @dict.set(@dict.size, word)
+    return @dict.size
+  getSize: () ->
+    return @dict.size
+  getArray: () ->
+    ret = []
+    @dict.forEach (value, key) =>
+      ret.push(value)
+    return ret
 
 class Word
   constructor: (@lemma, @part_of_speech = null) ->
@@ -139,8 +151,8 @@ getCorpusSynsets = (docs) ->
         .removeInvalidCharacters()
     console.log 'Document pre-processing finished'
 
+    vocab = new Vocabulary()
     wordArrays = corpus.documents.map (x) => x.split " "
-    logger.log "info", "This is the array of word arrays", {wordArrays: wordArrays}
     wordArrays = wordArrays.map (arr) =>
       res = arr.reduce (a,b) =>
         existingWord = a.filter (x) => return x.string == b
@@ -150,16 +162,16 @@ getCorpusSynsets = (docs) ->
         else
           word = {}
           word.string = b
+          word.id = vocab.add b
           word.count = 1
           return a.concat(word)
       , []
       return res
-    return wordArrays
+    return {wordArrays: wordArrays, vocab: vocab}
 
 createDocTree = (wordArray) ->
   baseWordArray = wordArray.map (x) =>
     x.baseWords = morphy x.string, "n"
-    logger.log "info","Morphy base words", {x:x}
     return x
   synsetsArray = baseWordArray.map (w) =>
     if not _.isEmpty w.baseWords

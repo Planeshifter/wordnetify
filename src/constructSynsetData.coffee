@@ -20,7 +20,7 @@ class SynsetNode
     @wordCount = word.count or 1
     @docs = if docIndex? then [docIndex] else []
     @docCount = 1
-    @words = if word.string then Array(word.string) else []
+    @words = if word.id then [word.id] else []
     if (word.baseWords)
       @baseWords = word.baseWords.map (bw) => bw.lemma
     if synset.hypernym?.length > 0

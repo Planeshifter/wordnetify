@@ -63,7 +63,7 @@ prepareWordnetTree = (options) ->
 
 createWordNetTree = (corpus, options) ->
     wordTreshold = if options.threshold then options.threshold else  1
-    wordArrays = getCorpusSynsets(corpus)
+    {wordArrays, vocab} = getCorpusSynsets(corpus)
     progressCreateDocTree = new ProgressBar('Create document trees + synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
 
     fPrunedDocTrees = []
@@ -92,6 +92,7 @@ createWordNetTree = (corpus, options) ->
     queue.drain = () ->
       BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
         prunedDocTrees = prunedDocTrees.map(JSON.parse)
+        console.log prunedDocTrees[0]
         cluster.server.kill('SIGKILL')
         outputJSON = ''
 
@@ -102,6 +103,7 @@ createWordNetTree = (corpus, options) ->
             finalTree = thresholdDocTree(finalTree, options.threshold)
           ret = {}
           ret.tree = finalTree
+          ret.vocab = vocab.getArray()
           ret.corpus = corpus
           outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
         else
