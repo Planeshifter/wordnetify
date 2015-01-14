@@ -3,9 +3,12 @@
   "version": "0.2.2",
   "description": "Command line interface to turn text documents into WordNet synset trees",
   "main": "main.js",
+  "config": {
+    "unsafe-perm": true
+  },
   "scripts": {
-    "test": "mocha test/test.coffee --compilers coffee:coffee-script/register"
-    "prepublish": "grunt"
+    "test": "mocha test/test.coffee --compilers coffee:coffee-script/register",
+    "prepublish": "sh ./prepublish.sh"
   },
   "repository": {
     "type": "git",
@@ -24,19 +27,17 @@
   },
   "preferGlobal": "true",
   "bin": {
-    "wordnetify": "lib/wordnetify.js"
+    "wordnetify": "./bin/wordnetify"
   },
   "dependencies": {
+    "async": "^0.9.0",
     "bin-search-tree": "^0.6.2",
     "bluebird": "~2.3.5",
-    "bucketsjs": "^1.81.0",
     "commander": "~2.3.0",
     "csv": "~0.4.0",
     "graceful-fs": "^3.0.5",
-    "jquery": "^2.1.3",
     "mime": "^1.2.11",
     "mocha": "~1.21.5",
-    "paralleljs": "^0.2.1",
     "pdfkit": "^0.7.0",
     "progress": "^1.1.8",
     "queue": "^3.0.10",

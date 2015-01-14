@@ -1,5 +1,3 @@
-`#!/usr/bin/env node`
-
 program       = require 'commander'
 fs            = require 'fs'
 csv           = require 'csv'
