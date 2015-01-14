@@ -90,7 +90,6 @@ createWordNetTree = (corpus, options) ->
     queue.drain = () ->
       BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
         prunedDocTrees = prunedDocTrees.map(JSON.parse)
-        console.log prunedDocTrees[0]
         cluster.server.kill('SIGKILL')
         outputJSON = ''
 

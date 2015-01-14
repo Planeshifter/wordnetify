@@ -7,6 +7,9 @@ logs
 *.js
 *.js.map
 
+# Output files
+*.pdf
+
 # Runtime data
 pids
 *.pid
