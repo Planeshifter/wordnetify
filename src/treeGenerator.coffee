@@ -14,17 +14,21 @@ generateCorpusTree = (docs) =>
    return 0;
   )
   allSynsets = _.flatten(docs)
-  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent', { total: _.size(allSynsets) })
 
-  attachHypernyms = (synset, child) =>
+  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent', { total: _.size(allSynsets) })
+  attachHypernyms = (synset, words, docIndices) =>
     if not bsTree.has(synset.synsetid)
       insert_synset = new SynsetNode synset
-      insert_synset.children.push(child.synsetid)
+      insert_synset.words = words
+      insert_synset.docs = docIndices
       bsTree.set(synset.synsetid, insert_synset)
-      if synset.hypernym.length > 0 then attachHypernyms(synset.hypernym[0], synset.synsetid)
     else
       existing_synset = bsTree.get(synset.synsetid)
-      existing_synset.children.push(child.synsetid)
+      existing_synset.words = existing_synset.words.concat(words)
+      existing_synset.docs = _.union(existing_synset.docs, docIndices)
+      docIndices = existing_synset.docs
+    if synset.hypernym.length > 0 then attachHypernyms(synset.hypernym[0], words, docIndices)
+    return
 
   for synset in allSynsets
     if not bsTree.has(synset.synsetid)
@@ -36,7 +40,7 @@ generateCorpusTree = (docs) =>
       existing_synset.baseWords =  existing_synset.baseWords?.concat(synset.baseWords)
     if synset.parentId and synset.parentId != 'root'
       parent = WORDNETIFY_SYNSETS_TREE[synset.parentId]
-      attachHypernyms(parent, synset)
+      attachHypernyms(parent, synset.words, synset.docs)
     progressCorpusTree.tick()
 
   hashTable = {}
