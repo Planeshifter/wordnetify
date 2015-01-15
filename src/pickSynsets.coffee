@@ -1,5 +1,5 @@
 _ = require "underscore"
-arr = require "./Array.js"
+require "plus_arrays"
 { WORDNETIFY_SYNSETS_TREE }  = require "./Tree"
 
 pickSynsets = (doc) ->

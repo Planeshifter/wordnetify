@@ -38,6 +38,7 @@
     "mime": "^1.2.11",
     "mocha": "~1.21.5",
     "pdfkit": "^0.7.0",
+    "plus_arrays": "^0.1.1",
     "progress": "^1.1.8",
     "queue": "^3.0.10",
     "queue-async": "^1.0.7",

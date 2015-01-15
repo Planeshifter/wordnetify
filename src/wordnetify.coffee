@@ -69,26 +69,27 @@ createWordNetTree = (corpus, options) ->
     nCPUS = require('os').cpus().length
     myInterval = setInterval(() =>
       if active_jobs <= nCPUS
-        if active_index == nJobs
+        if active_index >= nJobs
             clearInterval(myInterval)
             processPrunedDocTrees()
-        active_jobs++
-        doc = wordArrays[active_index]
-        postData = {doc : JSON.stringify(doc), index: active_index}
-        fRequest = rp.post(
-            'http://localhost:8000/getDocTree',
-            { body: querystring.stringify(postData)})
-        fRequest
-          .catch( (err) =>
-            console.log(err)
-          )
-          .then( (req) =>
-            progressCreateDocTree.tick()
-            active_jobs--
-            active_index++
-          )
-        fPrunedDocTrees.push fRequest
-    , 500)
+        else
+          active_jobs++
+          doc = wordArrays[active_index]
+          postData = {doc : JSON.stringify(doc), index: active_index}
+          fRequest = rp.post(
+              'http://localhost:8000/getDocTree',
+              { body: querystring.stringify(postData)})
+          fRequest
+            .catch( (err) =>
+              console.log(err)
+            )
+            .then( (req) =>
+              progressCreateDocTree.tick()
+              active_jobs--
+              active_index++
+            )
+          fPrunedDocTrees.push fRequest
+    , 100)
     processPrunedDocTrees = () ->
       BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
         prunedDocTrees = prunedDocTrees.map(JSON.parse)

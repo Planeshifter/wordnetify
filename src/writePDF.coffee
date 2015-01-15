@@ -9,8 +9,9 @@ writePDF = (output, filename, options = {}) ->
     # receive an Array of documents
     return writeDocPdfReport(output, filename, options)
   else
-    # receive a single object containing two keys:
+    # receive a single object containing three keys:
     #   tree: synset trees
+    #   vocab: vocabulary
     #   corpus: original texts
     return writeCorpusPdfReport(output, filename, options)
 
@@ -125,7 +126,7 @@ writeCorpusPdfReport = (output, filename, options) ->
       wordStringArr = []
       wordArr = _.map(synset.words, (count, key) =>
         o = {}
-        o.word = key
+        o.word = output.vocab[key]
         o.count = count
         return o
       ).sort( (a, b) =>

@@ -19,13 +19,14 @@ class SynsetNode
       words: synset.words }
     @wordCount = word.count or 1
     @docs = if docIndex? then [docIndex] else []
-    @docCount = 1
+    @docCount = @docs.length
     @words = if word.id then [word.id] else []
     if (word.baseWords)
-      @baseWords = word.baseWords.map (bw) => bw.lemma
+      @baseWords = _.unique(word.baseWords.map (bw) => bw.lemma)
     if synset.hypernym?.length > 0
     	@parentId = synset.hypernym[0].synsetid
     else
     	@parentId = "root"
+    @children = []
 
 module.exports = {constructSynsetData: constructSynsetData, SynsetNode: SynsetNode}

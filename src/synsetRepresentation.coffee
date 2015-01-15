@@ -6,7 +6,7 @@ ProgressBar = require 'progress'
 memoize = require "./memoize"
 fs = require 'graceful-fs'
 str = require './String.js'
-arr = require './Array.js'
+require 'plus_arrays'
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
 
 WORD_LOOKUP = JSON.parse(fs.readFileSync(__dirname + "/../data/LOOKUP.json"))
@@ -16,17 +16,16 @@ for word, synsetidArr of WORD_LOOKUP
 
 class Vocabulary
   constructor: () ->
-    @dict = new Map()
+    @dict = []
   add: (word) ->
-    @dict.set(@dict.size, word)
-    return @dict.size
+    if index = @dict.indexOf(word) is -1
+      @dict[@dict.length] = word
+      return @dict.length
+    else return index
   getSize: () ->
     return @dict.size
   getArray: () ->
-    ret = []
-    @dict.forEach (value, key) =>
-      ret.push(value)
-    return ret
+    return @dict
 
 class Word
   constructor: (@lemma, @part_of_speech = null) ->
