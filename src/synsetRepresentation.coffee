@@ -7,6 +7,7 @@ fs = require 'graceful-fs'
 str = require './String.js'
 require 'plus_arrays'
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
+BinarySearchTree = require 'bin-search-tree'
 
 tm = require "text-miner"
 tokenizer = require "sbd"
@@ -24,18 +25,29 @@ for word, synsetidArr of WORD_LOOKUP
 
 class Vocabulary
   constructor: () ->
-    @dict = []
+    @dict = new BinarySearchTree((a, b) =>
+     if (a < b)
+        return -1
+     if (a > b)
+        return 1
+     return 0;
+    )
   add: (word) ->
-    index = @dict.indexOf(word)
-    if index is -1
+    if not @dict.has(word)
       current_length = @dict.length
-      @dict[current_length] = word
+      @dict.set(word, current_length)
       return current_length
-    else return index
+    else
+      index = @dict.get(word)
+      return index
   getSize: () ->
-    return @dict.size
+    return @dict.length
   getArray: () ->
-    return @dict
+    ret = []
+    @dict.forEach( (value, key) =>
+      ret[value] = key
+    )
+    return ret
 
 class Word
   constructor: (@lemma, @part_of_speech = null) ->
@@ -149,15 +161,21 @@ getCorpusSynsets = (docs) ->
     if Array.isArray(docs) is false
       docs = Array(docs)
 
-    annotated_docs = docs.map( (doc) => tokenizer.sentences(doc))
+    progressTagging = new ProgressBar('POS tagging + stopword removal [:bar] :percent :etas', { total: docs.length })
+    annotated_docs = docs
+      .filter( (doc) => if doc then true else false)
+      .map( (doc) => tokenizer.sentences(doc))
     annotated_docs = annotated_docs.map( (doc) =>
       sentences = doc
-        .map( (sentence) => lexer.lex sentence)
-        .map( (sentence) => tagger.tag sentence)
+        .map( (sentence) => lexer.lex sentence).filter( (sentence) => sentence isnt null)
+        .map( (sentence) =>
+          ret = tagger.tag sentence
+          return ret
+        )
       annotated_doc = sentences.map( (sentence_tokens, index) =>
         return sentence_tokens.map( (token) =>
           o = {}
-          o.string = token[0]
+          o.string = token[0].toLower()
           o.pos = token[1]
           o.sentence_number = index
           return o
@@ -165,12 +183,17 @@ getCorpusSynsets = (docs) ->
           for stop_word in tm.STOPWORDS.EN
             if stop_word == token.string then return false
           return true
+        ).filter( (token) =>
+          if not ["!","?",".",";","-"].contains token.string then true else false
         )
       )
+      progressTagging.tick()
       return annotated_doc
     )
 
     console.log 'Document pre-processing finished'
+
+    progressVocab = new ProgressBar('Create vocabulary [:bar] :percent :etas', { total: annotated_docs.length })
     vocab = new Vocabulary()
     wordArrays = annotated_docs.map (sentences) =>
       newSentences = sentences.map (tokens) =>
@@ -189,6 +212,7 @@ getCorpusSynsets = (docs) ->
             return a.concat(word)
         , []
         return res
+      progressVocab.tick()
       return newSentences
     return {wordArrays: wordArrays, vocab: vocab}
 

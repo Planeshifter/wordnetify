@@ -104,8 +104,6 @@ createWordNetTree = (corpus, options) ->
           ret = {}
           ret.tree = finalTree
           ret.vocab = vocab.getArray()
-          console.log(ret.vocab)
-          console.log(ret.dict)
           ret.corpus = corpus
           outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
         else

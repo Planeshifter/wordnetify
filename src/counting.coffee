@@ -7,8 +7,8 @@ calculateCounts = (tree) ->
   for id, synset of tree
     do (synset) ->
       synset.docCount = synset.docs.length
-      synset.wordCount = synset.words.length
-      synset.words =  _.countBy(synset.words)
+      for key, value of synset.words
+        synset.wordCount += value
     progressBarCounting.tick()
   return tree
 

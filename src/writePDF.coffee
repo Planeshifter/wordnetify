@@ -73,7 +73,7 @@ formD3Tree = (tree) ->
     	tree[currentNode.parentId].children.push(currentNode)
 
   walkTree(tree["root"], null)
-  removeFlaggedNodes(tree["root"])
+  #removeFlaggedNodes(tree["root"])
   return tree["root"]
 
 # renders the title page of the guide

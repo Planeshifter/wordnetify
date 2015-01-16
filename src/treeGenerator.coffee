@@ -5,6 +5,12 @@ _    = require 'underscore'
 ProgressBar   = require 'progress'
 BinarySearchTree = require 'bin-search-tree'
 
+mergeWords = (words1, words2) ->
+  ret = words1
+  for key, value of words2
+    words1[key] = if words1[key] then words1[key] + value else value
+  return ret
+
 generateCorpusTree = (docs) =>
   bsTree = new BinarySearchTree((a, b) =>
    if (a < b)
@@ -21,7 +27,7 @@ generateCorpusTree = (docs) =>
     allMergedSynsets.push synset.reduce( (a,b) =>
       a.docs = a.docs.concat(b.docs)
       a.docCount += b.docCount
-      a.words = a.words.concat(b.words)
+      a.words = mergeWords(a.words, b.words)
       return a
     )
 
@@ -34,7 +40,7 @@ generateCorpusTree = (docs) =>
       bsTree.set(synset.synsetid, insert_synset)
     else
       existing_synset = bsTree.get(synset.synsetid)
-      existing_synset.words = existing_synset.words.concat(words)
+      existing_synset.words = mergeWords(existing_synset.words, words)
       existing_synset.docs = _.union(existing_synset.docs, docIndices)
       docIndices = existing_synset.docs
     if synset.hypernym.length > 0 then attachHypernyms(synset.hypernym[0], words, docIndices)
@@ -46,7 +52,7 @@ generateCorpusTree = (docs) =>
     else
       existing_synset = bsTree.get(synset.synsetid)
       existing_synset.docs =  _.union(existing_synset.docs, synset.docs)
-      existing_synset.words =  existing_synset.words?.concat(synset.words)
+      existing_synset.words =  mergeWords(existing_synset.words, synset.words)
       existing_synset.baseWords =  existing_synset.baseWords?.concat(synset.baseWords)
     if synset.parentId and synset.parentId != 'root'
       parent = WORDNETIFY_SYNSETS_TREE[synset.parentId]
