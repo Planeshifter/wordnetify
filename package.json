@@ -37,6 +37,7 @@
     "graceful-fs": "^3.0.5",
     "mime": "^1.2.11",
     "mocha": "~1.21.5",
+    "nlp_compromise": "^0.3.1",
     "pdfkit": "^0.7.0",
     "plus_arrays": "^0.1.1",
     "progress": "^1.1.8",

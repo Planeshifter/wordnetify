@@ -1,4 +1,5 @@
 tm = require "text-miner"
+nlp = require "nlp_compromise"
 BPromise = require "bluebird"
 _ = require "underscore"
 util = require "util"
@@ -18,9 +19,11 @@ class Vocabulary
   constructor: () ->
     @dict = []
   add: (word) ->
-    if index = @dict.indexOf(word) is -1
-      @dict[@dict.length] = word
-      return @dict.length
+    index = @dict.indexOf(word)
+    if index is -1
+      current_length = @dict.length
+      @dict[current_length] = word
+      return current_length
     else return index
   getSize: () ->
     return @dict.size
@@ -138,48 +141,81 @@ morphy = (input_str, pos) ->
 getCorpusSynsets = (docs) ->
     if Array.isArray(docs) is false
       docs = Array(docs)
-    corpus = new tm.Corpus(docs)
-    corpus = corpus
-        .removeInterpunctuation()
-        .removeNewlines()
-        .toLower()
-        .clean()
-        .removeWords(tm.STOPWORDS.EN)
-        .clean()
-        .removeDigits()
-        .removeInvalidCharacters()
-    console.log 'Document pre-processing finished'
 
+    annotated_docs = docs.map( (doc) => nlp.pos(doc))
+    annotated_docs = annotated_docs.map( (doc) =>
+      sentences = doc.sentences.map( (sentence) => sentence.tokens)
+      annotated_doc = sentences.map( (sentence_tokens, index) =>
+        return sentence_tokens.map( (token) =>
+          o = {}
+          o.string = token.normalised
+          o.pos = token.pos.parent
+          o.sentence_number = index
+          return o
+        ).filter( (token) =>
+          for stop_word in tm.STOPWORDS.EN
+            if stop_word == token.string then return false
+          return true
+        )
+      )
+      return annotated_doc
+    )
+
+    console.log 'Document pre-processing finished'
     vocab = new Vocabulary()
-    wordArrays = corpus.documents.map (x) => x.split " "
-    wordArrays = wordArrays.map (arr) =>
-      res = arr.reduce (a,b) =>
-        existingWord = a.filter (x) => return x.string == b
-        if existingWord.length > 0
-          existingWord[0].count++
-          return a
-        else
-          word = {}
-          word.string = b
-          word.id = vocab.add b
-          word.count = 1
-          return a.concat(word)
-      , []
-      return res
+    wordArrays = annotated_docs.map (sentences) =>
+      newSentences = sentences.map (tokens) =>
+        res = tokens.reduce (a,b) =>
+          existingWord = a.filter (x) => return x.string == b
+          if existingWord.length > 0
+            existingWord[0].count++
+            return a
+          else
+            word = {}
+            word.string = b.string
+            word.pos = b.pos
+            word.id = vocab.add b.string
+            word.count = 1
+            word.sentence_number = b.sentence_number
+            return a.concat(word)
+        , []
+        return res
+      return newSentences
     return {wordArrays: wordArrays, vocab: vocab}
 
 createDocTree = (wordArray) ->
-  baseWordArray = wordArray.map (x) =>
-    x.baseWords = morphy x.string, "n"
-    return x
-  synsetsArray = baseWordArray.map (w) =>
-    if not _.isEmpty w.baseWords
-      bw = new Word w.baseWords[0].lemma, "n"
-      w.synsets = getWordSynsets bw
-      return w
-    else
-      w.synsets = null
-      return w
+  baseWordArray = wordArray.map( (sentences) =>
+    ret = sentences.map( (token) =>
+      pos = switch token.pos
+        when "noun" then "n"
+        when "verb" then "v"
+        when "adjective" then "a"
+        else "none"
+      if pos isnt "none" then token.baseWords = morphy token.string, pos else token.baseWords = []
+      return token
+      )
+    return ret;
+  )
+  synsetsArray = baseWordArray.map (sentences) =>
+    ret = sentences.map( (w) =>
+      if not _.isEmpty w.baseWords
+        pos = switch w.pos
+          when "noun" then "n"
+          when "verb" then "v"
+          when "adjective" then "a"
+          else "none"
+        if pos isnt "none"
+          bw = new Word w.baseWords[0].lemma, pos
+          w.synsets = getWordSynsets bw
+        else
+          w.synsets = null
+        return w
+      else
+        w.synsets = null
+        return w
+    )
+    console.log ret
+    return ret
   return synsetsArray
 
 getWordSynsets = memoize( (word) => word.getSynsets() )

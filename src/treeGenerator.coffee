@@ -14,8 +14,18 @@ generateCorpusTree = (docs) =>
    return 0;
   )
   allSynsets = _.flatten(docs)
+  allSynsets = _.groupBy(allSynsets, "synsetid")
 
-  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent', { total: _.size(allSynsets) })
+  allMergedSynsets = []
+  for id, synset of allSynsets
+    allMergedSynsets.push synset.reduce( (a,b) =>
+      a.docs = a.docs.concat(b.docs)
+      a.docCount += b.docCount
+      a.words = a.words.concat(b.words)
+      return a
+    )
+
+  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent', { total: _.size(allMergedSynsets) })
   attachHypernyms = (synset, words, docIndices) =>
     if not bsTree.has(synset.synsetid)
       insert_synset = new SynsetNode synset
@@ -30,7 +40,7 @@ generateCorpusTree = (docs) =>
     if synset.hypernym.length > 0 then attachHypernyms(synset.hypernym[0], words, docIndices)
     return
 
-  for synset in allSynsets
+  for synset in allMergedSynsets
     if not bsTree.has(synset.synsetid)
       bsTree.set(synset.synsetid, synset)
     else

@@ -75,12 +75,12 @@ getDocTree = (response) ->
 getBestSynsets = (doc, index) ->
   # docTreeMsg = "Construct Candidate Set for Words of Doc " + index
   # console.time(docTreeMsg)
-  fWordTree = doc.map( (w) => constructSynsetData(w, Number index) )
+  fWordTree = doc.map( (sentence) => sentence.map ( (w) => constructSynsetData(w, Number index) ) )
   BPromise.all(fWordTree).then( (wordTree) =>
     # console.timeEnd(docTreeMsg)
-    wordTree = wordTree.filter( (word) => word != null )
+    wordTree = wordTree.map (sentence) => sentence.filter ( (word) => word != null )
     if (wordTree)
-      doc = pickSynsets(wordTree)
+      doc = wordTree.map( (sentence) => pickSynsets(sentence) )
     else
       doc = null
     return JSON.stringify(doc)

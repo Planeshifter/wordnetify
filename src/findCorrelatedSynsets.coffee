@@ -1,7 +1,7 @@
 util = require 'util'
 fs = require 'fs'
 _ = require 'underscore'
-arr = require './Array'
+require 'plus_arrays'
 
 output = JSON.parse fs.readFileSync '../kidneyforums.json'
 

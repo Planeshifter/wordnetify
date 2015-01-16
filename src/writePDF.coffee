@@ -2,7 +2,7 @@ PDFDocument = require 'pdfkit'
 fs = require 'fs'
 util = require 'util'
 _ = require 'underscore'
-arr = require './Array'
+require 'plus_arrays'
 
 writePDF = (output, filename, options = {}) ->
   if (Array.isArray(output))

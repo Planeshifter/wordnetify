@@ -17,7 +17,7 @@ class SynsetNode
       lexdomain: synset.lexdomain,
       pos: synset.pos,
       words: synset.words }
-    @wordCount = word.count or 1
+    @wordCount = null
     @docs = if docIndex? then [docIndex] else []
     @docCount = @docs.length
     @words = if word.id then [word.id] else []
@@ -27,6 +27,5 @@ class SynsetNode
     	@parentId = synset.hypernym[0].synsetid
     else
     	@parentId = "root"
-    @children = []
 
 module.exports = {constructSynsetData: constructSynsetData, SynsetNode: SynsetNode}
