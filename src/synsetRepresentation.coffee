@@ -175,7 +175,7 @@ getCorpusSynsets = (docs) ->
       annotated_doc = sentences.map( (sentence_tokens, index) =>
         return sentence_tokens.map( (token) =>
           o = {}
-          o.string = token[0].toLower()
+          o.string = token[0]?.toLowerCase()
           o.pos = token[1]
           o.sentence_number = index
           return o

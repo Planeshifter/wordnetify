@@ -31,7 +31,7 @@ generateCorpusTree = (docs) =>
       return a
     )
 
-  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent', { total: _.size(allMergedSynsets) })
+  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent :etas', { total: _.size(allMergedSynsets) })
   attachHypernyms = (synset, words, docIndices) =>
     if not bsTree.has(synset.synsetid)
       insert_synset = new SynsetNode synset
