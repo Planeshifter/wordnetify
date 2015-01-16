@@ -35,12 +35,12 @@ generateCorpusTree = (docs) =>
   attachHypernyms = (synset, words, docIndices) =>
     if not bsTree.has(synset.synsetid)
       insert_synset = new SynsetNode synset
-      insert_synset.words = words
+      # insert_synset.words = words
       insert_synset.docs = docIndices
       bsTree.set(synset.synsetid, insert_synset)
     else
       existing_synset = bsTree.get(synset.synsetid)
-      existing_synset.words = mergeWords(existing_synset.words, words)
+      # existing_synset.words = mergeWords(existing_synset.words, words)
       existing_synset.docs = _.union(existing_synset.docs, docIndices)
       docIndices = existing_synset.docs
     if synset.hypernym.length > 0 then attachHypernyms(synset.hypernym[0], words, docIndices)

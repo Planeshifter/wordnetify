@@ -1,5 +1,5 @@
 cluster = require('cluster')
-numCPUs = require('os').cpus().length
+numCPUs = require('os').cpus().length - 2
 workers = []
 workerCount = 0
 
@@ -39,7 +39,7 @@ else
       queryData = ''
       request.on('data', (data) =>
         queryData += data;
-        if(queryData.length > 1e9)
+        if(queryData.length > 1e16)
           # prevent data overload
           queryData = ""
           response.writeHead(413, {'Content-Type': 'text/plain'})?.end()
