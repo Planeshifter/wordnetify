@@ -135,6 +135,8 @@ generatePDF = (options) ->
   pdfOptions.includeDocs = options.includeDocs
   pdfOptions.includeWords = options.includeWords
   pdfOptions.docReferences = options.docReferences
+  pdfOptions.synsetId = options.synsetId
+  pdfOptions.type = options.type
   writeStream = writePDF(synsetTree, options.output, pdfOptions)
   writeStream
     .on("close", () =>
@@ -158,9 +160,11 @@ program
   .description('generate pdf report')
   .option('-i, --input [value]', 'Input JSON synset tree file')
   .option('-o, --output [value]', 'File name of generated PDF')
+  .option('-t,--type <type>', 'Specify type of report: doc, corpus, synset, correlation')
   .option('-d, --includeDocs', 'Append documents to report')
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
+  .option('-s,--synsetId [value]', 'Specify synset id [required for synset report]')
   .action(generatePDF)
 
 program

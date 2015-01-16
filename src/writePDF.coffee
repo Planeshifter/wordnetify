@@ -3,17 +3,24 @@ fs = require 'fs'
 util = require 'util'
 _ = require 'underscore'
 require 'plus_arrays'
+{findCorrelatedSynsets, findCorrelatedSynsetsWithId} = require './findCorrelatedSynsets'
 
 writePDF = (output, filename, options = {}) ->
-  if (Array.isArray(output))
-    # receive an Array of documents
-    return writeDocPdfReport(output, filename, options)
-  else
-    # receive a single object containing three keys:
-    #   tree: synset trees
-    #   vocab: vocabulary
-    #   corpus: original texts
-    return writeCorpusPdfReport(output, filename, options)
+  switch options.type
+    when "doc"
+      # receive an Array of documents
+      return writeDocPdfReport(output, filename, options)
+    when "corpus"
+      # receive a single object containing three keys:
+      #   tree: synset trees
+      #   vocab: vocabulary
+      #   corpus: original texts
+      return writeCorpusPdfReport(output, filename, options)
+    when "synset"
+      return writeSynsetPdfReport(output, filename, options)
+    when "correlation"
+      return writeCorrelationReport(output, filename, options)
+    else throw new Error("Type of report has to be specified.")
 
 walkTree = (current, parent) ->
     if current.children.length == 1 and parent != null
@@ -77,9 +84,9 @@ formD3Tree = (tree) ->
   return tree["root"]
 
 # renders the title page of the guide
-renderTitlePage = (doc, filename) ->
+renderTitlePage = (doc, filename, type = "") ->
   title = 'Corpus: ' + filename.split(".")[0]
-  subtitle = 'Synset Tree Output'
+  subtitle = 'Synset Tree Output: ' + type
   date = 'generated on ' + new Date().toDateString()
   doc.y = doc.page.height / 2 - doc.currentLineHeight()
   doc.font 'Helvetica'
@@ -95,8 +102,43 @@ renderTitlePage = (doc, filename) ->
   indent: w - doc.widthOfString(date)
   doc.addPage()
 
+
+writeCorrelationReport = (output, filename, options) ->
+  # Create a document
+  doc = new PDFDocument()
+  # Set up a stream to write to
+  writeStream = fs.createWriteStream(filename)
+  # Pipe document output to file
+  doc.pipe writeStream
+  renderTitlePage(doc, filename, "Correlation Report")
+
+  correlations = findCorrelatedSynsetsWithId(output)
+  console.log "Writing PDF file ..."
+  correlations.forEach (pair) =>
+    doc.text "#{pair.synset1} | #{pair.synset2} | #{pair.mutualInfo}"
+  # Finalize PDF file
+  doc.end()
+  return writeStream
+
 writeSynsetPdfReport = (output, filename, options) ->
-  console.log 'Should write Synset Reports'
+    # Create a document
+    doc = new PDFDocument()
+    # Set up a stream to write to
+    writeStream = fs.createWriteStream(filename)
+    # Pipe document output to file
+    doc.pipe writeStream
+    renderTitlePage(doc, filename, "Report for Synset {" + output.tree[options.synsetId].data.words.map((e)=>e.lemma).splice(0,3).join(", ") + "}")
+
+    correlations = findCorrelatedSynsetsWithId(output, options.synsetId)
+
+    console.log "Writing PDF file ..."
+
+    doc.text "Co-occurs with the following synsets:"
+    correlations.forEach (pair) =>
+      doc.text " #{pair.synset2} | #{pair.mutualInfo}"
+
+    doc.end()
+    return writeStream
 
 writeDocPdfReport = (output, filename, options) ->
   console.log 'Should write DOC Reports'
