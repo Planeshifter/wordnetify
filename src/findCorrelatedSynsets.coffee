@@ -3,8 +3,6 @@ fs = require 'fs'
 _ = require 'underscore'
 require 'plus_arrays'
 
-output = JSON.parse fs.readFileSync '../kidneyforums.json'
-
 findCorrelatedWithID = (output, synsetid) ->
   tree = output.tree
   synset_docs = tree[synsetid].docs
@@ -31,8 +29,6 @@ findCorrelatedWithID = (output, synsetid) ->
     o.docCount = e.docCount
     return o
   )
+  return synsetList
 
-  fs.writeFileSync("kidneyforumsHusband.json", JSON.stringify(synsetList, null, 2))
-
-
-findCorrelatedWithID(output,"110213586")
+module.exports = findCorrelatedWithID

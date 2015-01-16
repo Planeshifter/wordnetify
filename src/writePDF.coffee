@@ -95,6 +95,9 @@ renderTitlePage = (doc, filename) ->
   indent: w - doc.widthOfString(date)
   doc.addPage()
 
+writeSynsetPdfReport = (output, filename, options) ->
+  console.log 'Should write Synset Reports'
+
 writeDocPdfReport = (output, filename, options) ->
   console.log 'Should write DOC Reports'
 

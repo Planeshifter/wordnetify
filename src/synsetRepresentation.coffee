@@ -1,5 +1,3 @@
-tm = require "text-miner"
-nlp = require "nlp_compromise"
 BPromise = require "bluebird"
 _ = require "underscore"
 util = require "util"
@@ -9,6 +7,15 @@ fs = require 'graceful-fs'
 str = require './String.js'
 require 'plus_arrays'
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
+
+tm = require "text-miner"
+tokenizer = require "sbd"
+pos = require "pos"
+lexer = new pos.Lexer()
+tagger = new pos.Tagger()
+pos_adjectives = ["JJ","JJR"]
+pos_nouns = ["NN","NNS"]
+pos_verbs = ["VB","VBD","VBG","VBN","VBP","VBZ"]
 
 WORD_LOOKUP = JSON.parse(fs.readFileSync(__dirname + "/../data/LOOKUP.json"))
 
@@ -142,14 +149,16 @@ getCorpusSynsets = (docs) ->
     if Array.isArray(docs) is false
       docs = Array(docs)
 
-    annotated_docs = docs.map( (doc) => nlp.pos(doc))
+    annotated_docs = docs.map( (doc) => tokenizer.sentences(doc))
     annotated_docs = annotated_docs.map( (doc) =>
-      sentences = doc.sentences.map( (sentence) => sentence.tokens)
+      sentences = doc
+        .map( (sentence) => lexer.lex sentence)
+        .map( (sentence) => tagger.tag sentence)
       annotated_doc = sentences.map( (sentence_tokens, index) =>
         return sentence_tokens.map( (token) =>
           o = {}
-          o.string = token.normalised
-          o.pos = token.pos.parent
+          o.string = token[0]
+          o.pos = token[1]
           o.sentence_number = index
           return o
         ).filter( (token) =>
@@ -186,10 +195,10 @@ getCorpusSynsets = (docs) ->
 createDocTree = (wordArray) ->
   baseWordArray = wordArray.map( (sentences) =>
     ret = sentences.map( (token) =>
-      pos = switch token.pos
-        when "noun" then "n"
-        when "verb" then "v"
-        when "adjective" then "a"
+      pos = switch
+        when pos_nouns.contains(token.pos) then "n"
+        when pos_verbs.contains(token.pos) then "v"
+        when pos_adjectives.contains(token.pos) then "a"
         else "none"
       if pos isnt "none" then token.baseWords = morphy token.string, pos else token.baseWords = []
       return token
@@ -199,10 +208,10 @@ createDocTree = (wordArray) ->
   synsetsArray = baseWordArray.map (sentences) =>
     ret = sentences.map( (w) =>
       if not _.isEmpty w.baseWords
-        pos = switch w.pos
-          when "noun" then "n"
-          when "verb" then "v"
-          when "adjective" then "a"
+        pos = switch
+          when pos_nouns.contains(w.pos) then "n"
+          when pos_verbs.contains(w.pos) then "v"
+          when pos_adjectives.contains(w.pos) then "a"
           else "none"
         if pos isnt "none"
           bw = new Word w.baseWords[0].lemma, pos
@@ -214,7 +223,6 @@ createDocTree = (wordArray) ->
         w.synsets = null
         return w
     )
-    console.log ret
     return ret
   return synsetsArray
 

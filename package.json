@@ -39,7 +39,7 @@
     "mocha": "~1.21.5",
     "nlp_compromise": "^0.3.1",
     "pdfkit": "^0.7.0",
-    "plus_arrays": "^0.1.1",
+    "plus_arrays": "~0.1.1",
     "progress": "^1.1.8",
     "queue": "^3.0.10",
     "queue-async": "^1.0.7",
@@ -47,7 +47,9 @@
     "request-promise": "^0.3.2",
     "text-miner": "~0.1.8",
     "underscore": "~1.7.0",
-    "winston": "~0.8.1"
+    "winston": "~0.8.1",
+    "sbd": "0.0.5",
+    "pos": "~0.1.7-2"
   },
   "devDependencies": {
     "chai": "^1.10.0",
