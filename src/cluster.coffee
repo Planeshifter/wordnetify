@@ -1,5 +1,5 @@
 cluster = require('cluster')
-numCPUs = require('os').cpus().length - 2
+numCPUs = require('os').cpus().length
 workers = []
 workerCount = 0
 
@@ -9,15 +9,24 @@ BPromise    = require('bluebird')
 querystring = require('querystring')
 
 { constructSynsetData } = require "./constructSynsetData"
-{ createDocTree } = require "./synsetRepresentation"
 pickSynsets             = require "./pickSynsets"
+
+killWorkers = (signal) ->
+  for worker in workers
+    worker.kill(signal)
+
+process.on('SIGTERM', () =>
+  killWorkers('SIGTERM')
+)
 
 if (cluster.isMaster)
   for i in [0...numCPUs]
     worker = cluster.fork()
     workers[i] = worker
   cluster.on('exit', (worker, code, signal) =>
-    console.log('worker ' + worker.process.pid + ' died')
+    # console.log('worker ' + worker.process.pid + ' died')
+    workerCount--
+    if  workerCount == 0 then console.log '\n All workers closed. \n'
   )
   cluster.on('online', (worker) =>
     workerCount++;
@@ -28,7 +37,7 @@ if (cluster.isMaster)
   messageHandler = (msg) ->
     if (msg.cmd && msg.cmd == 'listening')
       numServers += 1
-      if numCPUs == numServers then  process.send({ msg: 'Workers ready for data processing' });
+      if numCPUs == numServers then  process.send({ msg: 'Workers ready for data processing' })
 
   Object.keys(cluster.workers).forEach((id) =>
     cluster.workers[id].on('message', messageHandler)
@@ -51,10 +60,7 @@ else
         response.post = querystring.parse(queryData)
         switch pathname
           when "/getBestSynsets"
-            # console.log("Daten sind angekommen")
             getBestSynsets(response)
-          when "/getDocTree"
-            getDocTree(response)
       )
   )
   server.setTimeout(0)
@@ -63,20 +69,13 @@ else
     process.send({ cmd: 'listening' });
   )
 
-getDocTree = (response) ->
+getBestSynsets = (response) ->
   doc = JSON.parse(response.post.doc)
   index = response.post.index
-  res = createDocTree(doc)
-  fMsg = getBestSynsets(res, index)
-  fMsg.then( (msg) =>
-    response.end(msg)
-  )
-
-getBestSynsets = (doc, index) ->
   # docTreeMsg = "Construct Candidate Set for Words of Doc " + index
   # console.time(docTreeMsg)
   fWordTree = doc.map( (sentence) => sentence.map ( (w) => constructSynsetData(w, Number index) ) )
-  BPromise.all(fWordTree).then( (wordTree) =>
+  fMsg = BPromise.all(fWordTree).then( (wordTree) =>
     # console.timeEnd(docTreeMsg)
     wordTree = wordTree.map (sentence) => sentence.filter ( (word) => word != null )
     if (wordTree)
@@ -84,4 +83,6 @@ getBestSynsets = (doc, index) ->
     else
       doc = null
     return JSON.stringify(doc)
+  ).then( (msg) =>
+    response.end(msg)
   )

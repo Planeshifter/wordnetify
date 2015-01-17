@@ -8,6 +8,7 @@ rp            = require 'request-promise'
 querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
+heapdump      = require 'heapdump'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
@@ -16,7 +17,7 @@ pickSynsets                     = require "./pickSynsets"
 thresholdTree                   = require "./thresholdTree"
 calculateCounts                 = require "./counting"
 { thresholdDocTree, thresholdWordTree } = require "./thresholdTree"
-writePDF = require "./writePDF"
+createDocTree                   = require "./createDocTree"
 cluster = {}
 
 prepareWordnetTree = (options) ->
@@ -35,98 +36,108 @@ prepareWordnetTree = (options) ->
     data = fs.readFileSync(options.input)
     mime_type = mime.lookup(options.input)
 
-    createWordNetTreeCluster = (corpus, options) ->
+    createWordNetTreeCluster = () ->
        console.log 'Number of Documents to analyze: ' + corpus.length
        cluster.server = child_process.fork(__dirname + '/cluster.js')
        cluster.server.on('message', (m) =>
          console.log('Worker connection established:', m.msg);
-         createWordNetTree(corpus, options)
+         createWordNetTree()
        )
 
     switch mime_type
       when "text/plain"
         delim = delim or "  "
         corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
-        createWordNetTreeCluster(corpus, options)
+        createWordNetTreeCluster()
       when "text/csv"
         csv.parse(String(data), (err, output) =>
           corpus = output.map( (d) => d[0] )
-          createWordNetTreeCluster(corpus, options)
+          createWordNetTreeCluster()
         )
       when "application/json"
         corpus = JSON.parse(data)
-        createWordNetTreeCluster(corpus, options)
+        createWordNetTreeCluster()
 
-createWordNetTree = (corpus, options) ->
-    wordTreshold = if options.threshold then options.threshold else  1
-    {wordArrays, vocab} = getCorpusSynsets(corpus)
-    progressCreateDocTree = new ProgressBar('Create document trees + synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
+  createWordNetTree = () ->
+      wordTreshold = if options.threshold then options.threshold else  1
+      {wordArrays, vocab} = getCorpusSynsets(corpus)
 
-    active_jobs = 0
-    fPrunedDocTrees = []
-    nJobs = wordArrays.length
-    active_index = 0
-    nCPUS = require('os').cpus().length
-    myInterval = setInterval(() =>
-      if active_jobs <= nCPUS
-        if active_index >= nJobs
-            clearInterval(myInterval)
-            processPrunedDocTrees()
-        else
-          active_jobs++
-          doc = wordArrays[active_index]
-          postData = {doc : JSON.stringify(doc), index: active_index}
-          fRequest = rp.post(
-              'http://localhost:8000/getDocTree',
-              { body: querystring.stringify(postData)})
-          fRequest
-            .catch( (err) =>
-              console.log(err)
-            )
-            .then( (req) =>
-              progressCreateDocTree.tick()
-              active_jobs--
-              active_index++
-            )
-          fPrunedDocTrees.push fRequest
-    , 100)
-    processPrunedDocTrees = () ->
-      BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
-        prunedDocTrees = prunedDocTrees.map(JSON.parse)
-        cluster.server.kill('SIGKILL')
-        outputJSON = ''
-
-        if options.combine
-          corpusTree = generateCorpusTree(prunedDocTrees)
-          finalTree = calculateCounts(corpusTree)
-          if options.threshold
-            finalTree = thresholdDocTree(finalTree, options.threshold)
-          ret = {}
-          ret.tree = finalTree
-          ret.vocab = vocab.getArray()
-          ret.corpus = corpus
-          outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
-        else
-          ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
-                              .map( (doc) => calculateCounts(doc) )
-          if options.threshold
-            ret = ret.map( (tree) => thresholdWordTree(tree))
-
-          outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
-
-        if options.output
-          fs.writeFileSync(options.output, outputJSON)
-        else
-          console.log(outputJSON)
-        return
-      ).finally( () =>
-        console.log "Job successfully completed."
-        process.exit(code=0)
-      ).catch( (err) =>
-        console.log(err)
-        console.log "Job aborted with errors."
-        process.exit(code=1)
+      progressCreateDocTree = new ProgressBar('Create document trees [:bar] :percent :etas', { total: wordArrays.length })
+      wordArrays = wordArrays.map( (doc) =>
+        ret = createDocTree(doc)
+        progressCreateDocTree.tick()
+        return ret
       )
+      progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
+      heapdump.writeSnapshot();
+      active_jobs = 0
+      fPrunedDocTrees = []
+      nJobs = wordArrays.length
+      active_index = 0
+      nCPUS = require('os').cpus().length
+      myInterval = setInterval(() =>
+        if active_jobs <= nCPUS
+          if active_index >= nJobs
+              clearInterval(myInterval)
+              processPrunedDocTrees()
+          else
+            active_jobs++
+            doc = wordArrays[active_index]
+            postData = {doc : JSON.stringify(doc), index: active_index}
+            fRequest = rp.post(
+                'http://localhost:8000/getBestSynsets',
+                { body: querystring.stringify(postData)})
+            fRequest
+              .catch( (err) =>
+                console.log(err)
+              )
+              .then( (req) =>
+                active_jobs--
+                active_index++
+                progressDisambiguation.tick()
+              )
+            fPrunedDocTrees.push fRequest.then(JSON.parse)
+      , 100)
+      processPrunedDocTrees = () ->
+        BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
+          cluster.server.kill('SIGTERM')
+          outputJSON = ''
+
+          # heapdump.writeSnapshot()
+
+          if options.combine
+            corpusTree = generateCorpusTree(prunedDocTrees)
+            finalTree = calculateCounts(corpusTree)
+            # heapdump.writeSnapshot()
+            if options.threshold
+              finalTree = thresholdDocTree(finalTree, options.threshold)
+            ret = {}
+            ret.tree = finalTree
+            ret.vocab = vocab.getArray()
+            ret.corpus = corpus
+            outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+          else
+            ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
+                                .map( (doc) => calculateCounts(doc) )
+            if options.threshold
+              ret = ret.map( (tree) => thresholdWordTree(tree))
+
+            heapdump.writeSnapshot()
+            outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+
+          if options.output
+            fs.writeFileSync(options.output, outputJSON)
+          else
+            console.log(outputJSON)
+          return
+        ).finally( () =>
+          console.log "Job successfully completed."
+          process.exit(code=0)
+        ).catch( (err) =>
+          console.log(err)
+          console.log "Job aborted with errors."
+          process.exit(code=1)
+        )
 
 generatePDF = (options) ->
   file = fs.readFileSync(options.input)
@@ -137,6 +148,7 @@ generatePDF = (options) ->
   pdfOptions.docReferences = options.docReferences
   pdfOptions.synsetId = options.synsetId
   pdfOptions.type = options.type
+  writePDF = require "./writePDF"
   writeStream = writePDF(synsetTree, options.output, pdfOptions)
   writeStream
     .on("close", () =>
