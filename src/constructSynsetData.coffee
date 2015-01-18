@@ -16,6 +16,8 @@ class SynsetNode
     @wordCount = null
     @docs = if docIndex? then [docIndex] else []
     @docCount = @docs.length
+    @tagCount = synset.tagCount
+    @ancestorIds = synset.ancestorIds
 
     obj = {}
     if word.id then obj[word.id] = 1
@@ -24,7 +26,7 @@ class SynsetNode
     if (word.baseWords)
       @baseWords = _.unique(word.baseWords.map (bw) => bw.lemma)
 
-    @parentId = synset.hypernymId
+    @parentId = if synset.hypernym?.length > 0 then synset.hypernym[0].synsetid else "root"
 
 
 

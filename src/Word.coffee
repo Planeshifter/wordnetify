@@ -5,16 +5,9 @@ WORD_LOOKUP = JSON.parse(fs.readFileSync(__dirname + "/../data/LOOKUP.json"))
 for word, synsetidArr of WORD_LOOKUP
   WORD_LOOKUP[word] = synsetidArr.map( (id) => WORDNETIFY_SYNSETS_TREE[id] )
 
-class Word
-  constructor: (@lemma, @part_of_speech = null) ->
-  getSynsets: (callback) ->
-    ret = if WORD_LOOKUP[@lemma] then WORD_LOOKUP[@lemma] else []
-    if @part_of_speech then ret = ret.filter( (synset) => synset.pos == @part_of_speech)
-    return ret.map( (synset) =>
-      o = {}
-      o.synsetid = synset.synsetid
-      o.hypernymId = if synset.hypernym?.length > 0 then synset.hypernym[0].synsetid else "root"
-      return o
-    )
+getSynsets = (lemma, part_of_speech = null) ->
+  ret = if WORD_LOOKUP[@lemma] then WORD_LOOKUP[@lemma] else []
+  if @part_of_speech then ret = ret.filter( (synset) => synset.pos == @part_of_speech)
+  return ret
 
-module.exports = Word
+module.exports = getSynsets

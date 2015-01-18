@@ -8,7 +8,7 @@ rp            = require 'request-promise'
 querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
-heapdump      = require 'heapdump'
+# heapdump    = require 'heapdump'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
@@ -69,7 +69,7 @@ prepareWordnetTree = (options) ->
         return ret
       )
       progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
-      heapdump.writeSnapshot();
+      #heapdump.writeSnapshot();
       active_jobs = 0
       fPrunedDocTrees = []
       nJobs = wordArrays.length
@@ -96,10 +96,11 @@ prepareWordnetTree = (options) ->
                 active_index++
                 progressDisambiguation.tick()
               )
-            fPrunedDocTrees.push fRequest.then(JSON.parse)
+            fPrunedDocTrees.push fRequest
       , 100)
       processPrunedDocTrees = () ->
         BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
+          prunedDocTrees = JSON.parse( "[" + prunedDocTrees.join(",") + "]" )
           cluster.server.kill('SIGTERM')
           outputJSON = ''
 

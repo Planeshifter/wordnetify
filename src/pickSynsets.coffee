@@ -1,15 +1,18 @@
 _ = require "underscore"
 require "plus_arrays"
-{ WORDNETIFY_SYNSETS_TREE }  = require "./Tree"
+exectimer = require "exectimer"
+jiangConrathSimilarity = require "./jiangConrathSimilarity"
 
 pickSynsets = (sentence) ->
+  tick = new exectimer.Tick("pickSynsets")
+  tick.start()
   for word, index in sentence
     scores = []
     for synset in word
       similarities = []
       for word2, index2 in sentence
         if index != index2
-          dists = word2.map (synset2) => WORDNETIFY_SYNSETS_TREE.jiangConrathSimilarity(synset.synsetid, synset2.synsetid)
+          dists = word2.map (synset2) => jiangConrathSimilarity(synset, synset2)
           similarities.push(dists.max())
       synset.score = similarities.sum()
       scores.push(synset.score)
@@ -23,6 +26,7 @@ pickSynsets = (sentence) ->
         chosen = true
     word.splice(i,1) for i in flaggedRemoval by -1
   sentence = sentence.map (synsets) => synsets[0]
+  tick.stop()
   return sentence
 
 module.exports = pickSynsets

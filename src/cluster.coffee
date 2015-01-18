@@ -7,6 +7,7 @@ http        = require('http')
 url         = require('url')
 BPromise    = require('bluebird')
 querystring = require('querystring')
+exectimer   = require('exectimer')
 
 { constructSynsetData } = require "./constructSynsetData"
 pickSynsets             = require "./pickSynsets"
@@ -80,6 +81,7 @@ getBestSynsets = (response) ->
     wordTree = wordTree.map (sentence) => sentence.filter ( (word) => word != null )
     if (wordTree)
       doc = wordTree.map( (sentence) => pickSynsets(sentence) )
+      # console.log "Doc #{index} disambiguated. Average time (in ms):" + exectimer.timers.pickSynsets.mean() 
     else
       doc = null
     return JSON.stringify(doc)
