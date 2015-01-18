@@ -1,6 +1,7 @@
 _ = require "underscore"
-getSynsets = require "./Word"
+Word = require "./Word"
 morphy = require "./morphy"
+util = require "util"
 
 pos_adjectives = ["JJ","JJR"]
 pos_nouns = ["NN","NNS","NNP","NNPS"]
@@ -19,6 +20,7 @@ createDocTree = (wordArray) ->
       )
     return ret;
   )
+
   synsetsArray = baseWordArray.map (sentences) =>
     ret = sentences.map( (w) =>
       if not _.isEmpty w.baseWords
@@ -28,7 +30,7 @@ createDocTree = (wordArray) ->
           when pos_adjectives.contains(w.pos) then "a"
           else "none"
         if pos isnt "none"
-          w.synsets = getSynsets(w.baseWords[0].lemma, pos)
+          w.synsets = new Word(w.baseWords[0].lemma, pos).getSynsets()
         else
           w.synsets = null
         return w

@@ -27,7 +27,7 @@ lowestCommonHypernym = (node1, node2) ->
   max_depth = depths.max()
   return synsets.filter((s) => depth(s) == max_depth)
 
-jiangConrathSimilarity = (node1, node2) ->
+jiangConrathSimilarity = memoize (node1, node2) ->
   ic1 = getInformation(node1.synsetid)
   ic2 = getInformation(node2.synsetid)
   least_common_subsumer = lowestCommonHypernym(node1, node2)

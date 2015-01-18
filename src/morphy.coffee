@@ -3,6 +3,7 @@ fs = require "fs"
 Word = require "./Word"
 require './String.js'
 memoize = require "./memoize"
+Word = require "./Word"
 
 EXCEPTIONS = JSON.parse(fs.readFileSync(__dirname + "/../data/EXCEPTIONS.json"))
 DICTIONARY = JSON.parse(fs.readFileSync(__dirname + "/../data/DICTIONARY.json"))
@@ -32,7 +33,6 @@ MORPHY_SUBSTITUTIONS = {
 }
 
 morphy = (input_str, pos) ->
-  debugger
   rulesOfDetachment = (word, substitutions) =>
     result = []
     DICTIONARY.filter((elem) =>

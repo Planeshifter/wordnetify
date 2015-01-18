@@ -8,6 +8,7 @@ url         = require('url')
 BPromise    = require('bluebird')
 querystring = require('querystring')
 exectimer   = require('exectimer')
+util        = require('util')
 
 { constructSynsetData } = require "./constructSynsetData"
 pickSynsets             = require "./pickSynsets"
@@ -75,16 +76,13 @@ getBestSynsets = (response) ->
   index = response.post.index
   # docTreeMsg = "Construct Candidate Set for Words of Doc " + index
   # console.time(docTreeMsg)
-  fWordTree = doc.map( (sentence) => sentence.map ( (w) => constructSynsetData(w, Number index) ) )
-  fMsg = BPromise.all(fWordTree).then( (wordTree) =>
-    # console.timeEnd(docTreeMsg)
-    wordTree = wordTree.map (sentence) => sentence.filter ( (word) => word != null )
-    if (wordTree)
-      doc = wordTree.map( (sentence) => pickSynsets(sentence) )
-      # console.log "Doc #{index} disambiguated. Average time (in ms):" + exectimer.timers.pickSynsets.mean() 
-    else
-      doc = null
-    return JSON.stringify(doc)
-  ).then( (msg) =>
-    response.end(msg)
-  )
+  wordTree = doc.map( (sentence) => sentence.map ( (w) => constructSynsetData(w, Number index) ) )
+  console.log wordTree
+  wordTree = wordTree.map (sentence) => sentence.filter ( (word) => word != null )
+  if (wordTree)
+    doc = wordTree.map( (sentence) => pickSynsets(sentence) )
+    # console.log "Doc #{index} disambiguated. Average time (in ms):" + exectimer.timers.pickSynsets.mean()
+  else
+    doc = null
+  msg = JSON.stringify(doc)
+  response.end(msg)

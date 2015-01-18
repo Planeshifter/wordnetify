@@ -19,8 +19,8 @@ class SynsetNode
     @tagCount = synset.tagCount
     @ancestorIds = synset.ancestorIds
 
-    obj = {}
-    if word.id then obj[word.id] = 1
+    obj = Object.create(null)
+    if word.id != undefined then obj[word.id] = word.count
     @words = obj
 
     if (word.baseWords)

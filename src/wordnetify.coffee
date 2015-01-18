@@ -5,6 +5,7 @@ mime          = require 'mime'
 BPromise      = require 'bluebird'
 util          = require 'util'
 rp            = require 'request-promise'
+request       = require 'request'
 querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
@@ -71,74 +72,67 @@ prepareWordnetTree = (options) ->
       progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
       #heapdump.writeSnapshot();
       active_jobs = 0
-      fPrunedDocTrees = []
+      prunedDocTrees = []
       nJobs = wordArrays.length
       active_index = 0
       nCPUS = require('os').cpus().length
       myInterval = setInterval(() =>
         if active_jobs <= nCPUS
           if active_index >= nJobs
-              clearInterval(myInterval)
-              processPrunedDocTrees()
+            clearInterval(myInterval)
+            processPrunedDocTrees()
           else
             active_jobs++
             doc = wordArrays[active_index]
             postData = {doc : JSON.stringify(doc), index: active_index}
-            fRequest = rp.post(
-                'http://localhost:8000/getBestSynsets',
-                { body: querystring.stringify(postData)})
-            fRequest
-              .catch( (err) =>
-                console.log(err)
-              )
-              .then( (req) =>
+            request.post(
+              'http://localhost:8000/getBestSynsets',
+              { body: querystring.stringify(postData)},
+              (error, response) =>
                 active_jobs--
                 active_index++
                 progressDisambiguation.tick()
-              )
-            fPrunedDocTrees.push fRequest
+                #console.log response
+                prunedDocTrees.push(response.body)
+            )
       , 100)
-      processPrunedDocTrees = () ->
-        BPromise.all(fPrunedDocTrees).then( (prunedDocTrees) =>
-          prunedDocTrees = JSON.parse( "[" + prunedDocTrees.join(",") + "]" )
-          cluster.server.kill('SIGTERM')
-          outputJSON = ''
+      processPrunedDocTrees = (error) ->
+        prunedDocTrees = prunedDocTrees.map (doc) => JSON.parse(doc)
+        cluster.server.kill('SIGTERM')
+        outputJSON = ''
+        # heapdump.writeSnapshot()
 
+        if options.combine
+          corpusTree = generateCorpusTree(prunedDocTrees)
+          finalTree = calculateCounts(corpusTree)
           # heapdump.writeSnapshot()
+          if options.threshold
+            finalTree = thresholdDocTree(finalTree, options.threshold)
+          ret = {}
+          ret.tree = finalTree
+          ret.vocab = vocab.getArray()
+          ret.corpus = corpus
+          outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+        else
+          ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
+                              .map( (doc) => calculateCounts(doc) )
+          if options.threshold
+            ret = ret.map( (tree) => thresholdWordTree(tree))
 
-          if options.combine
-            corpusTree = generateCorpusTree(prunedDocTrees)
-            finalTree = calculateCounts(corpusTree)
-            # heapdump.writeSnapshot()
-            if options.threshold
-              finalTree = thresholdDocTree(finalTree, options.threshold)
-            ret = {}
-            ret.tree = finalTree
-            ret.vocab = vocab.getArray()
-            ret.corpus = corpus
-            outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
-          else
-            ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
-                                .map( (doc) => calculateCounts(doc) )
-            if options.threshold
-              ret = ret.map( (tree) => thresholdWordTree(tree))
+          heapdump.writeSnapshot()
+          outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
 
-            heapdump.writeSnapshot()
-            outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
-
-          if options.output
-            fs.writeFileSync(options.output, outputJSON)
-          else
-            console.log(outputJSON)
-          return
-        ).finally( () =>
+        if options.output
+          fs.writeFileSync(options.output, outputJSON)
+        else
+          console.log(outputJSON)
+        if(!error)
           console.log "Job successfully completed."
           process.exit(code=0)
-        ).catch( (err) =>
-          console.log(err)
+        else
+          console.log(error)
           console.log "Job aborted with errors."
           process.exit(code=1)
-        )
 
 generatePDF = (options) ->
   file = fs.readFileSync(options.input)

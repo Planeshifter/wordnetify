@@ -6,9 +6,9 @@ ProgressBar   = require 'progress'
 BinarySearchTree = require 'bin-search-tree'
 
 mergeWords = (words1, words2) ->
-  ret = words1
+  ret = _.clone(words1)
   for key, value of words2
-    words1[key] = if words1[key] then words1[key] + value else value
+    ret[key] = if ret[key] then ret[key] + value else value
   return ret
 
 generateCorpusTree = (docs) =>
@@ -36,12 +36,12 @@ generateCorpusTree = (docs) =>
   attachHypernyms = (synset, words, docIndices) =>
     if not bsTree.has(synset.synsetid)
       insert_synset = new SynsetNode synset
-      insert_synset.words = words
+      insert_synset.new_words = _.clone(words)
       insert_synset.docs = docIndices
       bsTree.set(synset.synsetid, insert_synset)
     else
       existing_synset = bsTree.get(synset.synsetid)
-      existing_synset.words = mergeWords(existing_synset.words, words)
+      existing_synset.new_words = mergeWords(existing_synset.new_words, words)
       existing_synset.docs = _.union(existing_synset.docs, docIndices)
       docIndices = existing_synset.docs
     if synset.hypernym.length > 0 then attachHypernyms(synset.hypernym[0], words, docIndices)
@@ -49,13 +49,13 @@ generateCorpusTree = (docs) =>
 
   for synset in allMergedSynsets
     if not bsTree.has(synset.synsetid)
+      synset.new_words = _.clone(synset.words)
       bsTree.set(synset.synsetid, synset)
     else
       existing_synset = bsTree.get(synset.synsetid)
       existing_synset.docs =  _.union(existing_synset.docs, synset.docs)
-      existing_synset.words =  mergeWords(existing_synset.words, synset.words)
+      existing_synset.new_words =  mergeWords(existing_synset.new_words, synset.words)
       existing_synset.baseWords =  existing_synset.baseWords?.concat(synset.baseWords)
-    
     if synset.parentId and synset.parentId != 'root'
       parent = WORDNETIFY_SYNSETS_TREE[synset.parentId]
       attachHypernyms(parent, synset.words, synset.docs)
@@ -64,6 +64,14 @@ generateCorpusTree = (docs) =>
   hashTable = {}
   bsTree.forEach((value, key) =>
     hashTable[key] = value
+    hashTable[key].data = WORDNETIFY_SYNSETS_TREE[key]
+    delete hashTable[key].data.hypernym
+    delete hashTable[key].tagCount
+    delete hashTable[key].score
+    delete hashTable[key].ancestorIds
+    delete hashTable[key].words
+    hashTable[key].words = hashTable[key].new_words
+    delete hashTable[key].new_words
   )
   return hashTable
 

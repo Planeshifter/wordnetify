@@ -27,5 +27,4 @@ for key, synset of WORDNETIFY_SYNSETS_TREE
     if WORDNETIFY_SYNSETS_TREE.hasOwnProperty(key) then synset.ancestorIds = getAncestorIds(synset)
 
 
-
 module.exports = {WORDNETIFY_SYNSETS_TREE: WORDNETIFY_SYNSETS_TREE, BROWN: BROWN}
