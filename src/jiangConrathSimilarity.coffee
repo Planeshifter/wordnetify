@@ -51,11 +51,11 @@ calculates Jiang & Conrath Similarity measure of two synsets. Considers the info
 lowest common subsumer (lcs) and the two compared concepts to calculate the distance between the two concepts. 
 Source: http://arxiv.org/pdf/cmp-lg/9709008.pdf
 ###
-jiangConrathSimilarity = memoize (node1, node2) ->
+jiangConrathSimilarity =  (node1, node2) ->
   ic1 = getInformation(node1.synsetid)
   ic2 = getInformation(node2.synsetid)
   least_common_subsumer = lowestCommonHypernym(node1, node2)
   ic_lcs = least_common_subsumer ? 0 : getInformation(least_common_subsumer)
   return - ic1 - ic2 + 2 * ic_lcs
 
-module.exports = jiangConrathSimilarity
+module.exports = exports = jiangConrathSimilarity
