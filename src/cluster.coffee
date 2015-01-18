@@ -77,7 +77,6 @@ getBestSynsets = (response) ->
   # docTreeMsg = "Construct Candidate Set for Words of Doc " + index
   # console.time(docTreeMsg)
   wordTree = doc.map( (sentence) => sentence.map ( (w) => constructSynsetData(w, Number index) ) )
-  console.log wordTree
   wordTree = wordTree.map (sentence) => sentence.filter ( (word) => word != null )
   if (wordTree)
     doc = wordTree.map( (sentence) => pickSynsets(sentence) )
