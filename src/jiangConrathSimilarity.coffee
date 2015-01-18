@@ -2,12 +2,19 @@ fs = require 'fs'
 _  = require 'underscore'
 memoize = require './memoize'
 
+###
+synset counts tagged on the Brown corpus, used as relative frequencies in calculation of synset
+information 
+###
 BROWN_JSON = fs.readFileSync(__dirname + '/../data/BROWN.json')
 BROWN = JSON.parse(BROWN_JSON);
 BROWN_COUNTS = _.countBy(BROWN, (freq) => return freq)
 
 {WORDNETIFY_SYNSETS_TREE} = require './Tree'
 
+###
+returns the estimated information for synset with id *nodeid* 
+###
 getInformation = memoize (nodeId) ->
   freqSum = WORDNETIFY_SYNSETS_TREE[nodeId].tagCount
   N = 130811
@@ -15,18 +22,35 @@ getInformation = memoize (nodeId) ->
   prob_hat = ((freqSum + 1) / N) * (N_r(freqSum + 1)/N_r(freqSum))
   return - Math.log(prob_hat)
 
+###
+depth of synset with id *node_id*, defined as the number of nodes up to the root node, i.e.
+the number of ancestors
+###
 depth = (node_id) ->
   return WORDNETIFY_SYNSETS_TREE[node_id].ancestorIds.length
 
+###
+returns the ids of all synsets which are hypernymsof both node1 and node2
+###
 getCommonHypernyms = (node1, node2) ->
   return _.intersection(node1.ancestorIds, node2.ancestorIds)
 
+
+###
+find lowest common subsumer for nodes *node1* and *node2*, used in calculation of the 
+Jiang & Conrath similarity measure 
+###
 lowestCommonHypernym = (node1, node2) ->
   synsets = getCommonHypernyms(node1, node2);
   depths = synsets.map( (s) => depth(s) )
   max_depth = depths.max()
   return synsets.filter((s) => depth(s) == max_depth)
 
+###
+calculates Jiang & Conrath Similarity measure of two synsets. Considers the information content of 
+lowest common subsumer (lcs) and the two compared concepts to calculate the distance between the two concepts. 
+Source: http://arxiv.org/pdf/cmp-lg/9709008.pdf
+###
 jiangConrathSimilarity = memoize (node1, node2) ->
   ic1 = getInformation(node1.synsetid)
   ic2 = getInformation(node2.synsetid)
