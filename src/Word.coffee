@@ -11,5 +11,9 @@ class Word
     ret = if WORD_LOOKUP[@lemma] then WORD_LOOKUP[@lemma] else []
     if @part_of_speech then ret = ret.filter( (synset) => synset.pos == @part_of_speech)
     return ret
+  getSynsetIds: (callback) ->
+    ret = if WORD_LOOKUP[@lemma] then WORD_LOOKUP[@lemma] else []
+    if @part_of_speech then ret = ret.filter( (synset) => synset.pos == @part_of_speech)
+    return ret.map( (synset) => synset.synsetid)
 
 module.exports = Word

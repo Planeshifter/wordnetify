@@ -30,7 +30,7 @@ createDocTree = (wordArray) ->
           when pos_adjectives.contains(w.pos) then "a"
           else "none"
         if pos isnt "none"
-          w.synsets = new Word(w.baseWords[0].lemma, pos).getSynsets()
+          w.synsets = new Word(w.baseWords[0].lemma, pos).getSynsetIds()
         else
           w.synsets = null
         return w

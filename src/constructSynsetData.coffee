@@ -1,9 +1,10 @@
 _ = require "underscore"
 util = require "util"
+{WORDNETIFY_SYNSETS_TREE} = require './Tree'
 
 constructSynsetData = (word, docIndex) ->
   if word.synsets
-    word.synsets = word.synsets.map (s) => new SynsetNode(s, docIndex, word)
+    word.synsets = word.synsets.map (id) => new SynsetNode( WORDNETIFY_SYNSETS_TREE[id], docIndex, word)
   else
     word.synsets = null
   return word.synsets
