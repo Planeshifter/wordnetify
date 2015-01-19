@@ -1,5 +1,7 @@
-_ = require "underscore"
+_     = require "underscore"
+util  = require "util"
 require "plus_arrays"
+
 # exectimer = require "exectimer"
 jiangConrathSimilarity = require "./jiangConrathSimilarity"
 

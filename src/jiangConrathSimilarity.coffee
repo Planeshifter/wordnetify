@@ -7,11 +7,10 @@ HashTable = require 'hashtable'
 synset counts tagged on the Brown corpus, used as relative frequencies in calculation of synset
 information
 ###
-BROWN_JSON = fs.readFileSync(__dirname + '/../data/BROWN.json')
-BROWN = JSON.parse(BROWN_JSON);
+BROWN = JSON.parse( fs.readFileSync __dirname + '/../data/BROWN.json' )
 BROWN_COUNTS = _.countBy(BROWN, (freq) => return freq)
 BROWN_COUNTS_HASH_TABLE = new HashTable()
-for key, value in BROWN_COUNTS
+for key, value of BROWN_COUNTS
   BROWN_COUNTS_HASH_TABLE.put(key, value)
 BROWN_COUNTS = {}
 

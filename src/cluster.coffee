@@ -1,5 +1,5 @@
 cluster = require('cluster')
-numCPUs = require('os').cpus().length - 2
+numCPUs = require('os').cpus().length - 3
 workers = []
 workerCount = 0
 
@@ -28,7 +28,7 @@ if (cluster.isMaster)
   cluster.on('exit', (worker, code, signal) =>
     # console.log('worker ' + worker.process.pid + ' died')
     workerCount--
-    if  workerCount == 0 then console.log '\n All workers closed. \n'
+    # if  workerCount == 0 then console.log 'All workers closed.'
   )
   cluster.on('online', (worker) =>
     workerCount++;
@@ -74,6 +74,7 @@ else
 getBestSynsets = (response) ->
   doc = JSON.parse(response.post.doc)
   index = response.post.index
+  console.log index
   # docTreeMsg = "Construct Candidate Set for Words of Doc " + index
   # console.time(docTreeMsg)
   wordTree = doc.map( (sentence) => sentence.map ( (w) => constructSynsetData(w, Number index) ) )

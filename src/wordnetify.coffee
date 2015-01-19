@@ -29,7 +29,9 @@ prepareWordnetTree = (options) ->
   if options.list
     delim = delim or ";"
     corpus = options.list.split(delim)
-    cluster.server = child_process.fork(__dirname + '/cluster.js')
+    cluster.server = child_process.fork(__dirname + '/cluster.js', ["--max_old_space_size=2000"], {
+      silent: true
+    })
     cluster.server.on('message', (m) =>
       console.log('Worker connection established:', m.msg);
       createWordNetTree(corpus, options)
@@ -74,13 +76,13 @@ prepareWordnetTree = (options) ->
         progressCreateDocTree.tick()
         return ret
       )
-      progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
+      # progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
       # heapdump.writeSnapshot();
       active_jobs = 0
       prunedDocTrees = []
       nJobs = wordArrays.length
       active_index = 0
-      nCPUS = require('os').cpus().length - 2
+      nCPUS = require('os').cpus().length - 4
       myInterval = setInterval(() =>
         if active_jobs <= nCPUS
           if active_index >= nJobs
@@ -94,11 +96,13 @@ prepareWordnetTree = (options) ->
               'http://localhost:8000/getBestSynsets',
               { body: querystring.stringify(postData)},
               (error, response) =>
-                active_jobs--
-                active_index++
-                progressDisambiguation.tick()
-                #console.log response
-                prunedDocTrees.push( JSON.parse(response.body) )
+                if not error
+                  active_jobs--
+                  active_index++
+                  # progressDisambiguation.tick()
+                  #console.log response
+                  prunedDocTrees.push( JSON.parse(response.body) )
+                else console.log error
             )
       , 100)
       processPrunedDocTrees = (error) ->

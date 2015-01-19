@@ -3,11 +3,8 @@ fs = require 'fs'
 util = require 'util'
 HashTable = require 'hashtable'
 
-SYNSETS_JSON = fs.readFileSync(__dirname + '/../data/SYNSETS.json')
-WORDNETIFY_SYNSETS_TREE = JSON.parse(SYNSETS_JSON)
-
-BROWN_JSON = fs.readFileSync(__dirname + '/../data/BROWN.json')
-BROWN = JSON.parse(BROWN_JSON);
+WORDNETIFY_SYNSETS_TREE = JSON.parse( SYNSETS_JSON = fs.readFileSync __dirname + '/../data/SYNSETS.json' )
+BROWN = JSON.parse( fs.readFileSync __dirname + '/../data/BROWN.json' );
 
 IdsToHypernyms = (id) -> WORDNETIFY_SYNSETS_TREE[id]
 
@@ -25,6 +22,7 @@ for key, synset of WORDNETIFY_SYNSETS_TREE
       synset.hypernym = synset.hypernym.map IdsToHypernyms
 
 WORDNETIFY_SYNSETS_TREE_HASH_TABLE = new HashTable()
+WORDNETIFY_SYNSETS_TREE_HASH_TABLE.reserve( Object.keys(WORDNETIFY_SYNSETS_TREE).length )
 
 for key, synset of WORDNETIFY_SYNSETS_TREE
     if WORDNETIFY_SYNSETS_TREE.hasOwnProperty(key)

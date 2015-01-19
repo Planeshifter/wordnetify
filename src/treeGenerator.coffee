@@ -19,15 +19,16 @@ generateCorpusTree = (docs) =>
     for sentence, sentenceIndex in doc
       for synset, synsetIndex in sentence
         # console.log "doc: #{docIndex}; sentence: #{sentenceIndex}; synset: #{synsetIndex}"
-        if not allMergedSynsets.has(synset.synsetid)
-          allMergedSynsets.put(synset.synsetid, synset)
-        else
-          existing_synset = allMergedSynsets.get(synset.synsetid)
-          existing_synset.docs = existing_synset.docs.concat(synset.docs)
-          existing_synset.docCount += synset.docCount
-          existing_synset.words = mergeWords(existing_synset.words, synset.words)
+        if synset and synset.synsetid
+          if not allMergedSynsets.has(synset.synsetid)
+            allMergedSynsets.put(synset.synsetid, synset)
+          else
+            existing_synset = allMergedSynsets.get(synset.synsetid)
+            existing_synset.docs = existing_synset.docs.concat(synset.docs)
+            existing_synset.docCount += synset.docCount
+            existing_synset.words = mergeWords(existing_synset.words, synset.words)
 
-  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent :etas', { total: _.size(allMergedSynsets) })
+  progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent :etas', { total: allMergedSynsets.size() })
   attachHypernyms = (synset, words, docIndices) =>
     if not bsTree.has(synset.synsetid)
       insert_synset = new SynsetNode synset
@@ -61,7 +62,7 @@ generateCorpusTree = (docs) =>
   hashTable = {}
   bsTree.forEach((key, value) =>
     hashTable[key] = value
-    hashTable[key].data = WORDNETIFY_SYNSETS_TREE.get(key)
+    hashTable[key].data = WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(key)
     delete hashTable[key].data.hypernym
     delete hashTable[key].tagCount
     delete hashTable[key].score
