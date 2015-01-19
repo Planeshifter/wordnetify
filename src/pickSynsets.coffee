@@ -1,11 +1,11 @@
 _ = require "underscore"
 require "plus_arrays"
-exectimer = require "exectimer"
+# exectimer = require "exectimer"
 jiangConrathSimilarity = require "./jiangConrathSimilarity"
 
 pickSynsets = (sentence) ->
-  tick = new exectimer.Tick("pickSynsets")
-  tick.start()
+  # tick = new exectimer.Tick("pickSynsets")
+  # tick.start()
   for word, index in sentence
     scores = []
     for synset in word
@@ -26,7 +26,9 @@ pickSynsets = (sentence) ->
         chosen = true
     word.splice(i,1) for i in flaggedRemoval by -1
   sentence = sentence.map (synsets) => synsets[0]
-  tick.stop()
+  flaggedRemoval = []
+  similarities =  []
+  # tick.stop()
   return sentence
 
 module.exports = pickSynsets

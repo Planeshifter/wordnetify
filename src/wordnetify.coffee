@@ -10,6 +10,7 @@ querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
 # heapdump    = require 'heapdump'
+HashTable     = require 'hashtable'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
@@ -60,8 +61,12 @@ prepareWordnetTree = (options) ->
         createWordNetTreeCluster()
 
   createWordNetTree = () ->
+      corpusHashTable = new HashTable()
       wordTreshold = if options.threshold then options.threshold else  1
       {wordArrays, vocab} = getCorpusSynsets(corpus)
+      for doc, index in corpus
+        corpusHashTable.put(index, doc)
+      corpus = []
 
       progressCreateDocTree = new ProgressBar('Create document trees [:bar] :percent :etas', { total: wordArrays.length })
       wordArrays = wordArrays.map( (doc) =>
@@ -70,12 +75,12 @@ prepareWordnetTree = (options) ->
         return ret
       )
       progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
-      #heapdump.writeSnapshot();
+      # heapdump.writeSnapshot();
       active_jobs = 0
       prunedDocTrees = []
       nJobs = wordArrays.length
       active_index = 0
-      nCPUS = require('os').cpus().length
+      nCPUS = require('os').cpus().length - 2
       myInterval = setInterval(() =>
         if active_jobs <= nCPUS
           if active_index >= nJobs
@@ -93,11 +98,11 @@ prepareWordnetTree = (options) ->
                 active_index++
                 progressDisambiguation.tick()
                 #console.log response
-                prunedDocTrees.push(response.body)
+                prunedDocTrees.push( JSON.parse(response.body) )
             )
       , 100)
       processPrunedDocTrees = (error) ->
-        prunedDocTrees = prunedDocTrees.map (doc) => JSON.parse(doc)
+        # prunedDocTrees = prunedDocTrees.map (doc) => JSON.parse(doc)
         cluster.server.kill('SIGTERM')
         outputJSON = ''
         # heapdump.writeSnapshot()
@@ -111,6 +116,10 @@ prepareWordnetTree = (options) ->
           ret = {}
           ret.tree = finalTree
           ret.vocab = vocab.getArray()
+
+          corpusHashTable.forEach( (key,value) =>
+            corpus.push(value)
+          )
           ret.corpus = corpus
           outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
         else

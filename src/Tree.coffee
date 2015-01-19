@@ -1,6 +1,7 @@
 _ = require 'underscore'
 fs = require 'fs'
 util = require 'util'
+HashTable = require 'hashtable'
 
 SYNSETS_JSON = fs.readFileSync(__dirname + '/../data/SYNSETS.json')
 WORDNETIFY_SYNSETS_TREE = JSON.parse(SYNSETS_JSON)
@@ -23,8 +24,11 @@ for key, synset of WORDNETIFY_SYNSETS_TREE
       synset.tagCount = BROWN[key]
       synset.hypernym = synset.hypernym.map IdsToHypernyms
 
+WORDNETIFY_SYNSETS_TREE_HASH_TABLE = new HashTable()
+
 for key, synset of WORDNETIFY_SYNSETS_TREE
-    if WORDNETIFY_SYNSETS_TREE.hasOwnProperty(key) then synset.ancestorIds = getAncestorIds(synset)
+    if WORDNETIFY_SYNSETS_TREE.hasOwnProperty(key)
+      synset.ancestorIds = getAncestorIds(synset)
+      WORDNETIFY_SYNSETS_TREE_HASH_TABLE.put(key, synset)
 
-
-module.exports = {WORDNETIFY_SYNSETS_TREE: WORDNETIFY_SYNSETS_TREE, BROWN: BROWN}
+module.exports = {WORDNETIFY_SYNSETS_TREE_HASH_TABLE: WORDNETIFY_SYNSETS_TREE_HASH_TABLE, BROWN: BROWN}

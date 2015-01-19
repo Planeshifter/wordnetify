@@ -5,7 +5,7 @@ ProgressBar = require 'progress'
 fs = require 'graceful-fs'
 require './String.js'
 require 'plus_arrays'
-{WORDNETIFY_SYNSETS_TREE} = require './Tree'
+{WORDNETIFY_SYNSETS_TREE_HASH_TABLE} = require './Tree'
 BinarySearchTree = require 'bin-search-tree'
 Word             = require './Word'
 
@@ -18,7 +18,7 @@ tagger = new pos.Tagger()
 WORD_LOOKUP = JSON.parse(fs.readFileSync(__dirname + "/../data/LOOKUP.json"))
 
 for word, synsetidArr of WORD_LOOKUP
-  WORD_LOOKUP[word] = synsetidArr.map( (id) => WORDNETIFY_SYNSETS_TREE[id] )
+  WORD_LOOKUP[word] = synsetidArr.map( (id) => WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(id) )
 
 class Vocabulary
   constructor: () ->
@@ -72,8 +72,11 @@ getCorpusSynsets = (docs) ->
           for stop_word in tm.STOPWORDS.EN
             if stop_word == token.string then return false
           return true
+        ).map( (token) =>
+          token.string = token.string.replace(/[^a-z]+/ig, "")
+          return token
         ).filter( (token) =>
-          if not ["!","?",".",";","-"].contains token.string then true else false
+          return token.string != ""
         )
       )
       progressTagging.tick()

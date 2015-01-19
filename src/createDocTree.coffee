@@ -1,5 +1,5 @@
 _ = require "underscore"
-Word = require "./Word"
+{Word, getSynsetIds} = require "./Word"
 morphy = require "./morphy"
 util = require "util"
 
@@ -30,7 +30,8 @@ createDocTree = (wordArray) ->
           when pos_adjectives.contains(w.pos) then "a"
           else "none"
         if pos isnt "none"
-          w.synsets = new Word(w.baseWords[0].lemma, pos).getSynsetIds()
+          # w.synsets = new Word(w.baseWords[0].lemma, pos).getSynsetIds()
+          w.synsets = getSynsetIds(w.baseWords[0].lemma, pos)
         else
           w.synsets = null
         return w

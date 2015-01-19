@@ -3,7 +3,7 @@ fs = require "fs"
 Word = require "./Word"
 require './String.js'
 memoize = require "./memoize"
-Word = require "./Word"
+{Word} = require "./Word"
 
 EXCEPTIONS = JSON.parse(fs.readFileSync(__dirname + "/../data/EXCEPTIONS.json"))
 DICTIONARY = JSON.parse(fs.readFileSync(__dirname + "/../data/DICTIONARY.json"))

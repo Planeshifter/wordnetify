@@ -1,9 +1,9 @@
 util = require 'util'
 _    = require 'underscore'
 {SynsetNode} = require './constructSynsetData'
-{WORDNETIFY_SYNSETS_TREE} = require './Tree'
+{WORDNETIFY_SYNSETS_TREE_HASH_TABLE} = require './Tree'
 ProgressBar   = require 'progress'
-BinarySearchTree = require 'bin-search-tree'
+HashTable = require 'hashtable'
 
 mergeWords = (words1, words2) ->
   ret = _.clone(words1)
@@ -12,25 +12,20 @@ mergeWords = (words1, words2) ->
   return ret
 
 generateCorpusTree = (docs) =>
-  bsTree = new BinarySearchTree((a, b) =>
-   if (a < b)
-      return -1
-   if (a > b)
-      return 1
-   return 0;
-  )
+  bsTree = new HashTable()
+  allMergedSynsets = new HashTable()
 
-  allSynsets = _.flatten(docs)
-  allSynsets = _.groupBy(allSynsets, "synsetid")
-
-  allMergedSynsets = []
-  for id, synset of allSynsets
-    allMergedSynsets.push synset.reduce( (a,b) =>
-      a.docs = a.docs.concat(b.docs)
-      a.docCount += b.docCount
-      a.words = mergeWords(a.words, b.words)
-      return a
-    )
+  for doc, docIndex in docs
+    for sentence, sentenceIndex in doc
+      for synset, synsetIndex in sentence
+        # console.log "doc: #{docIndex}; sentence: #{sentenceIndex}; synset: #{synsetIndex}"
+        if not allMergedSynsets.has(synset.synsetid)
+          allMergedSynsets.put(synset.synsetid, synset)
+        else
+          existing_synset = allMergedSynsets.get(synset.synsetid)
+          existing_synset.docs = existing_synset.docs.concat(synset.docs)
+          existing_synset.docCount += synset.docCount
+          existing_synset.words = mergeWords(existing_synset.words, synset.words)
 
   progressCorpusTree = new ProgressBar('Create corpus tree [:bar] :percent :etas', { total: _.size(allMergedSynsets) })
   attachHypernyms = (synset, words, docIndices) =>
@@ -38,7 +33,7 @@ generateCorpusTree = (docs) =>
       insert_synset = new SynsetNode synset
       insert_synset.new_words = _.clone(words)
       insert_synset.docs = docIndices
-      bsTree.set(synset.synsetid, insert_synset)
+      bsTree.put(synset.synsetid, insert_synset)
     else
       existing_synset = bsTree.get(synset.synsetid)
       existing_synset.new_words = mergeWords(existing_synset.new_words, words)
@@ -47,24 +42,26 @@ generateCorpusTree = (docs) =>
     if synset.hypernym.length > 0 then attachHypernyms(synset.hypernym[0], words, docIndices)
     return
 
-  for synset in allMergedSynsets
-    if not bsTree.has(synset.synsetid)
-      synset.new_words = _.clone(synset.words)
-      bsTree.set(synset.synsetid, synset)
-    else
-      existing_synset = bsTree.get(synset.synsetid)
-      existing_synset.docs =  _.union(existing_synset.docs, synset.docs)
-      existing_synset.new_words =  mergeWords(existing_synset.new_words, synset.words)
-      existing_synset.baseWords =  existing_synset.baseWords?.concat(synset.baseWords)
-    if synset.parentId and synset.parentId != 'root'
-      parent = WORDNETIFY_SYNSETS_TREE[synset.parentId]
-      attachHypernyms(parent, synset.words, synset.docs)
-    progressCorpusTree.tick()
+  allMergedSynsets.forEach( (key, synset) =>
+    if synset.synsetid
+      if not bsTree.has(synset.synsetid)
+        synset.new_words = _.clone(synset.words)
+        bsTree.put(synset.synsetid, synset)
+      else
+        existing_synset = bsTree.get(synset.synsetid)
+        existing_synset.docs =  _.union(existing_synset.docs, synset.docs)
+        existing_synset.new_words =  mergeWords(existing_synset.new_words, synset.words)
+        existing_synset.baseWords =  existing_synset.baseWords?.concat(synset.baseWords)
+      if synset.parentId and synset.parentId != 'root'
+        parent = WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(synset.parentId)
+        attachHypernyms(parent, synset.words, synset.docs)
+      progressCorpusTree.tick()
+  )
 
   hashTable = {}
-  bsTree.forEach((value, key) =>
+  bsTree.forEach((key, value) =>
     hashTable[key] = value
-    hashTable[key].data = WORDNETIFY_SYNSETS_TREE[key]
+    hashTable[key].data = WORDNETIFY_SYNSETS_TREE.get(key)
     delete hashTable[key].data.hypernym
     delete hashTable[key].tagCount
     delete hashTable[key].score
@@ -100,7 +97,7 @@ generateWordTree = (doc) =>
       existing_synset.words =  existing_synset.words?.concat(synset.words)
       existing_synset.baseWords =  existing_synset.baseWords?.concat(synset.baseWords)
     if synset.parentId and synset.parentId != 'root'
-      parent = WORDNETIFY_SYNSETS_TREE[synset.parentId]
+      parent = WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(synset.parentId)
       attachHypernyms(parent, synset.words, synset.docs)
 
   return hashTable

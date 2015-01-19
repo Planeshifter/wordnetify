@@ -1,5 +1,5 @@
 cluster = require('cluster')
-numCPUs = require('os').cpus().length
+numCPUs = require('os').cpus().length - 2
 workers = []
 workerCount = 0
 
