@@ -9,6 +9,7 @@ request       = require 'request'
 querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
+Parallax      = require 'parallax'
 # heapdump    = require 'heapdump'
 HashTable     = require 'hashtable'
 
@@ -20,132 +21,32 @@ thresholdTree                   = require "./thresholdTree"
 calculateCounts                 = require "./counting"
 { thresholdDocTree, thresholdWordTree } = require "./thresholdTree"
 createDocTree                   = require "./createDocTree"
+createWordNetTree               = require "./createWordNetTree"
 cluster = {}
 
 prepareWordnetTree = (options) ->
   corpus;
   delim = options.delim
-
   if options.list
     delim = delim or ";"
     corpus = options.list.split(delim)
-    cluster.server = child_process.fork(__dirname + '/cluster.js', ["--max_old_space_size=2000"], {
-      silent: true
-    })
-    cluster.server.on('message', (m) =>
-      console.log('Worker connection established:', m.msg);
-      createWordNetTree(corpus, options)
-    )
+    createWordNetTrees(corpus, options)
   else if (options.input)
     data = fs.readFileSync(options.input)
     mime_type = mime.lookup(options.input)
-
-    createWordNetTreeCluster = () ->
-       console.log 'Number of Documents to analyze: ' + corpus.length
-       cluster.server = child_process.fork(__dirname + '/cluster.js')
-       cluster.server.on('message', (m) =>
-         console.log('Worker connection established:', m.msg);
-         createWordNetTree()
-       )
-
     switch mime_type
       when "text/plain"
         delim = delim or "  "
         corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
-        createWordNetTreeCluster()
+        createWordNetTree(corpus, options)
       when "text/csv"
         csv.parse(String(data), (err, output) =>
           corpus = output.map( (d) => d[0] )
-          createWordNetTreeCluster()
+          createWordNetTree(corpus, options)
         )
       when "application/json"
         corpus = JSON.parse(data)
-        createWordNetTreeCluster()
-
-  createWordNetTree = () ->
-      corpusHashTable = new HashTable()
-      wordTreshold = if options.threshold then options.threshold else  1
-      {wordArrays, vocab} = getCorpusSynsets(corpus)
-      for doc, index in corpus
-        corpusHashTable.put(index, doc)
-      corpus = []
-
-      progressCreateDocTree = new ProgressBar('Create document trees [:bar] :percent :etas', { total: wordArrays.length })
-      wordArrays = wordArrays.map( (doc) =>
-        ret = createDocTree(doc)
-        progressCreateDocTree.tick()
-        return ret
-      )
-      # progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
-      # heapdump.writeSnapshot();
-      active_jobs = 0
-      prunedDocTrees = []
-      nJobs = wordArrays.length
-      active_index = 0
-      nCPUS = require('os').cpus().length - 4
-      myInterval = setInterval(() =>
-        if active_jobs <= nCPUS
-          if active_index >= nJobs
-            clearInterval(myInterval)
-            processPrunedDocTrees()
-          else
-            active_jobs++
-            doc = wordArrays[active_index]
-            postData = {doc : JSON.stringify(doc), index: active_index}
-            request.post(
-              'http://localhost:8000/getBestSynsets',
-              { body: querystring.stringify(postData)},
-              (error, response) =>
-                if not error
-                  active_jobs--
-                  active_index++
-                  # progressDisambiguation.tick()
-                  #console.log response
-                  prunedDocTrees.push( JSON.parse(response.body) )
-                else console.log error
-            )
-      , 100)
-      processPrunedDocTrees = (error) ->
-        # prunedDocTrees = prunedDocTrees.map (doc) => JSON.parse(doc)
-        cluster.server.kill('SIGTERM')
-        outputJSON = ''
-        # heapdump.writeSnapshot()
-
-        if options.combine
-          corpusTree = generateCorpusTree(prunedDocTrees)
-          finalTree = calculateCounts(corpusTree)
-          # heapdump.writeSnapshot()
-          if options.threshold
-            finalTree = thresholdDocTree(finalTree, options.threshold)
-          ret = {}
-          ret.tree = finalTree
-          ret.vocab = vocab.getArray()
-
-          corpusHashTable.forEach( (key,value) =>
-            corpus.push(value)
-          )
-          ret.corpus = corpus
-          outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
-        else
-          ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
-                              .map( (doc) => calculateCounts(doc) )
-          if options.threshold
-            ret = ret.map( (tree) => thresholdWordTree(tree))
-
-          heapdump.writeSnapshot()
-          outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
-
-        if options.output
-          fs.writeFileSync(options.output, outputJSON)
-        else
-          console.log(outputJSON)
-        if(!error)
-          console.log "Job successfully completed."
-          process.exit(code=0)
-        else
-          console.log(error)
-          console.log "Job aborted with errors."
-          process.exit(code=1)
+        createWordNetTree(corpus, options)
 
 generatePDF = (options) ->
   file = fs.readFileSync(options.input)
