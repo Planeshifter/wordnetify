@@ -33,7 +33,7 @@ createWordNetTree = (corpus, options) ->
     progressCreateDocTree.tick()
     return ret
   )
-  parallel = new Parallax(wordArrays,{"seriesWorkers":"lib/seriesWorkers.js"},{CPUs: 4})
+  parallel = new Parallax(wordArrays,{"seriesWorkers":"lib/seriesWorkers.js"},{CPUs: 12})
   parallel.apply([{namespace: "seriesWorkers", function:"disambiguateDoc"}], (err, res) =>
     processPrunedDocTrees(err, res)
   )

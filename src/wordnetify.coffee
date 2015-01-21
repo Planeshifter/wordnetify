@@ -30,7 +30,8 @@ prepareWordnetTree = (options) ->
   if options.list
     delim = delim or ";"
     corpus = options.list.split(delim)
-    createWordNetTrees(corpus, options)
+    console.log corpus
+    createWordNetTree(corpus, options)
   else if (options.input)
     data = fs.readFileSync(options.input)
     mime_type = mime.lookup(options.input)
