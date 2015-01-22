@@ -64,15 +64,21 @@ generatePDF = (type, options, id) ->
   pdfOptions.everything = options.everything
   {writeDocReport, writeCorpusReport, writeSynsetReport, writeCorrelationReport} = require "./writePDF"
 
+  # receive a single object synsetTree containing three keys:
+  #   tree: synset trees
+  #   vocab: vocabulary
+  #   corpus: original texts
   switch type
     when "doc"
       # receive an Array of documents
       writeStream = writeDocReport(synsetTree,  options.output, pdfOptions)
     when "corpus"
-      # receive a single object containing three keys:
-      #   tree: synset trees
-      #   vocab: vocabulary
-      #   corpus: original texts
+      # create all synset reports if --everything is supplied
+      if options.everything == true
+        for key, value of synsetTree.tree
+            options.synsetID = key
+            synsetWriteStream = writeSynsetReport(synsetTree, "./synsets/" + key + ".pdf", options)
+            synsetWriteStream.on("close", () => console.log("Synset Report " + key + " written") )
       writeStream = writeCorpusReport(synsetTree, options.output, pdfOptions)
     when "synset"
       writeStream = writeSynsetReport(synsetTree, options.output, pdfOptions)

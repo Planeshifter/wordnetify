@@ -5,10 +5,10 @@ _ = require 'underscore'
 path = require 'path'
 require 'plus_arrays'
 {findCorrelatedSynsets, findCorrelatedSynsetsWithId} = require './findCorrelatedSynsets'
-
+textSummarizer = require 'sum'
 
 fontTitle = (doc) ->
-  font_path = path.normalize(__dirname + '/../fonts/Raleway-Medium.ttf')
+  font_path = path.normalize(__dirname + '/../fonts/Raleway-Thin.ttf')
   doc.font(font_path)
 
 fontBody = (doc) ->
@@ -16,13 +16,15 @@ fontBody = (doc) ->
   doc.font(font_path)
 
 sectionHeader = (doc, text) ->
-  doc.addPage
+  doc.addPage()
   doc.fontSize 16
   doc.fillColor 'black'
   fontTitle(doc)
+  doc.moveDown(0.5)
   doc.text text,
     width: 410,
     align: 'center'
+  doc.moveDown(0.5)
 
 walkTree = (current, parent) ->
     if current.children.length == 1 and parent != null
@@ -130,16 +132,59 @@ writeSynsetReport = (output, filename, options) ->
     writeStream = fs.createWriteStream(filename)
     # Pipe document output to file
     doc.pipe writeStream
-    renderTitlePage(doc, filename, "Report for Synset {" + output.tree[options.synsetID].data.words.map((e)=>e.lemma).splice(0,3).join(", ") + "}")
+
+    current_synset = output.tree[options.synsetID]
+    renderTitlePage(doc, filename, "Report for Synset {" + current_synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + "}")
 
     correlations = findCorrelatedSynsetsWithId(output, options.synsetID)
+    limit = options.limit || 20
+    correlations = correlations.filter( (o, index) => index <= limit)
 
-    console.log "Writing PDF file ..."
-
-    doc.text "Co-occurs with the following synsets:"
+    sectionHeader(doc, "Synset Co-Occurence")
+    fontBody(doc)
+    doc.fontSize 10
+    doc.text "It co-occurs with the following synsets:"
     correlations.forEach (pair) =>
+      pair.mutualInfo = pair.mutualInfo.toFixed(2)
+      doc.fontSize 8
       doc.text " #{pair.synset2} | #{pair.mutualInfo}"
 
+    synset_words = _.map(current_synset.words, (count, key) =>
+      return output.vocab[key]
+    )
+
+    if options.includeDocs == true
+      console.log "Summarize documents..."
+      sectionHeader(doc, "Summary of Corpus Documents")
+      relevant_subset = output.corpus.filter( (doc, index) =>
+        current_synset.docs.contains(index) == true
+      )
+
+      summaries = relevant_subset.map( (doc) =>
+        return textSummarizer({
+          corpus: doc,
+          nSentences: 2,
+          emphasise: synset_words
+        }).summary)
+
+      filtered_summaries = summaries.filter( (doc) =>
+        foundSynset = false
+        for word in synset_words
+          if doc.indexOf(word) != -1 then foundSynset = true
+        return foundSynset
+      )
+
+      filtered_summaries.forEach( (txt, i) =>
+        fontBody(doc)
+        doc.fontSize 10
+        doc.moveDown(0.2)
+        doc.text "Document " + i + ":"
+        doc.moveDown(0.2)
+        doc.fontSize 8
+        doc.text txt
+      )
+
+    console.log "Writing PDF file ..."
     doc.end()
     return writeStream
 
@@ -147,6 +192,7 @@ writeDocReport = (output, filename, options) ->
   console.log 'Should write DOC Reports'
 
 writeCorpusReport = (output, filename, options) ->
+
   # Create a document
   doc = new PDFDocument()
 
@@ -167,7 +213,7 @@ writeCorpusReport = (output, filename, options) ->
     doc.fillColor 'steelblue'
     if options.everything == true
       doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):",
-         link: 'http://apple.com/'
+         link: 'http://localhost:8000/synsets/' + synset.synsetid + ".pdf"
     else
         doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):",
 
