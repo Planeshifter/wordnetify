@@ -17,7 +17,7 @@ pairs = (arr) ->
       ]
       ++j
     ++i
-  res
+  return res
 
 calculateMutualInformation = (synset1, synset2, nDocs) ->
   nCommon = _.intersection(synset1.docs, synset2.docs).length
@@ -53,16 +53,19 @@ findCorrelatedSynsetsWithId = (output, synsetid) ->
   return _.sortBy(candidates, (o) => o.mutualInfo).reverse()
 
 findCorrelatedSynsets = (output) ->
-  console.log(output.corpus)
   tree = output.tree
   nDocs = output.corpus.length
+  console.log "Hurra"
+  console.log(nDocs)
   nSynsets = Object.keys(output.tree).length
 
   all_relevant_keys = _.filter(tree, (val, key) =>
     if val.isCandidate == true then true else false
   )
-
+  console.log all_relevant_keys
+  ###
   all_pairs = pairs(all_relevant_keys)
+  console.log all_pairs
   progressCorrelation = new ProgressBar('Calculate correlations [:bar] :percent :etas', { total: all_pairs.length })
   candidates = []
   maxMutualInfo = []
@@ -82,5 +85,6 @@ findCorrelatedSynsets = (output) ->
 
   console.log "#{candidates.length} relevant synset pairs identified"
   return _.sortBy(candidates, (o) => o.mutualInfo).reverse()
+  ### 
 
 module.exports = {findCorrelatedSynsets: findCorrelatedSynsets, findCorrelatedSynsetsWithId: findCorrelatedSynsetsWithId}

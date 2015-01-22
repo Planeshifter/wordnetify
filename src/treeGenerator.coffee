@@ -12,6 +12,9 @@ mergeWords = (words1, words2) ->
   return ret
 
 generateCorpusTree = (docs) =>
+
+  console.log docs
+
   bsTree = new HashTable()
   allMergedSynsets = new HashTable()
 
@@ -24,7 +27,7 @@ generateCorpusTree = (docs) =>
             allMergedSynsets.put(synset.synsetid, synset)
           else
             existing_synset = allMergedSynsets.get(synset.synsetid)
-            existing_synset.docs = existing_synset.docs.concat(synset.docs)
+            existing_synset.docs = _.union(existing_synset.docs, synset.docs)
             existing_synset.docCount += synset.docCount
             existing_synset.words = mergeWords(existing_synset.words, synset.words)
 

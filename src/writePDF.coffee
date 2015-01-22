@@ -2,25 +2,27 @@ PDFDocument = require 'pdfkit'
 fs = require 'fs'
 util = require 'util'
 _ = require 'underscore'
+path = require 'path'
 require 'plus_arrays'
 {findCorrelatedSynsets, findCorrelatedSynsetsWithId} = require './findCorrelatedSynsets'
 
-writePDF = (output, filename, options = {}) ->
-  switch options.type
-    when "doc"
-      # receive an Array of documents
-      return writeDocPdfReport(output, filename, options)
-    when "corpus"
-      # receive a single object containing three keys:
-      #   tree: synset trees
-      #   vocab: vocabulary
-      #   corpus: original texts
-      return writeCorpusPdfReport(output, filename, options)
-    when "synset"
-      return writeSynsetPdfReport(output, filename, options)
-    when "correlation"
-      return writeCorrelationReport(output, filename, options)
-    else throw new Error("Type of report has to be specified.")
+
+fontTitle = (doc) ->
+  font_path = path.normalize(__dirname + '/../fonts/Raleway-Medium.ttf')
+  doc.font(font_path)
+
+fontBody = (doc) ->
+  font_path = path.normalize(__dirname + '/../fonts/DroidSans.ttf')
+  doc.font(font_path)
+
+sectionHeader = (doc, text) ->
+  doc.addPage
+  doc.fontSize 16
+  doc.fillColor 'black'
+  fontTitle(doc)
+  doc.text text,
+    width: 410,
+    align: 'center'
 
 walkTree = (current, parent) ->
     if current.children.length == 1 and parent != null
@@ -35,6 +37,7 @@ walkTree = (current, parent) ->
          ).reduce((a,b) =>
            return a.concat(b)
          ,[])
+
          if current_word_lemmas.compare(current_child_lemmas) == true
            current.flagged = true
       return;
@@ -80,7 +83,7 @@ formD3Tree = (tree) ->
     	tree[currentNode.parentId].children.push(currentNode)
 
   walkTree(tree["root"], null)
-  #removeFlaggedNodes(tree["root"])
+  removeFlaggedNodes(tree["root"])
   return tree["root"]
 
 # renders the title page of the guide
@@ -89,7 +92,7 @@ renderTitlePage = (doc, filename, type = "") ->
   subtitle = 'Synset Tree Output: ' + type
   date = 'generated on ' + new Date().toDateString()
   doc.y = doc.page.height / 2 - doc.currentLineHeight()
-  doc.font 'Helvetica'
+  fontTitle(doc)
   doc.fontSize 20
   doc.text title, align: 'left'
   w = doc.widthOfString(title)
@@ -120,16 +123,16 @@ writeCorrelationReport = (output, filename, options) ->
   doc.end()
   return writeStream
 
-writeSynsetPdfReport = (output, filename, options) ->
+writeSynsetReport = (output, filename, options) ->
     # Create a document
     doc = new PDFDocument()
     # Set up a stream to write to
     writeStream = fs.createWriteStream(filename)
     # Pipe document output to file
     doc.pipe writeStream
-    renderTitlePage(doc, filename, "Report for Synset {" + output.tree[options.synsetId].data.words.map((e)=>e.lemma).splice(0,3).join(", ") + "}")
+    renderTitlePage(doc, filename, "Report for Synset {" + output.tree[options.synsetID].data.words.map((e)=>e.lemma).splice(0,3).join(", ") + "}")
 
-    correlations = findCorrelatedSynsetsWithId(output, options.synsetId)
+    correlations = findCorrelatedSynsetsWithId(output, options.synsetID)
 
     console.log "Writing PDF file ..."
 
@@ -140,10 +143,10 @@ writeSynsetPdfReport = (output, filename, options) ->
     doc.end()
     return writeStream
 
-writeDocPdfReport = (output, filename, options) ->
+writeDocReport = (output, filename, options) ->
   console.log 'Should write DOC Reports'
 
-writeCorpusPdfReport = (output, filename, options) ->
+writeCorpusReport = (output, filename, options) ->
   # Create a document
   doc = new PDFDocument()
 
@@ -157,12 +160,20 @@ writeCorpusPdfReport = (output, filename, options) ->
 
   root = formD3Tree(output.tree)
 
+  sectionHeader(doc, "Corpus Synset Tree")
+  fontBody(doc)
   printSynset = (synset, depth) ->
     doc.fontSize 10
     doc.fillColor 'steelblue'
-    doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):"
+    if options.everything == true
+      doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):",
+         link: 'http://apple.com/'
+    else
+        doc.text Array(depth).join("-") + " " + synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):",
+
     doc.fillColor 'black'
     doc.fontSize 6
+    if options.includeIDs == true then doc.text Array(depth).join(" ") + "ID: " + synset.synsetid
     doc.text Array(depth).join(" ") + synset.data.definition
     if options.docReferences then doc.text Array(depth).join(" ") + "[appears in document: " + synset.docs.join(", ") + "]"
 
@@ -204,18 +215,13 @@ writeCorpusPdfReport = (output, filename, options) ->
 
 
   if options.includeDocs
-    doc.addPage
-    doc.fontSize 14
-    doc.fillColor 'black'
-    doc.text 'Corpus Documents',
-      width: 410,
-      align: 'center'
+    sectionHeader(doc, "Corpus Documents")
 
     output.corpus.forEach( (txt, i) =>
-      doc.font('Times-Roman')
-      doc.fontSize 12
-      doc.text "Document " + i + ":"
+      fontBody(doc)
       doc.fontSize 10
+      doc.text "Document " + i + ":"
+      doc.fontSize 8
       doc.text txt
     )
 
@@ -223,4 +229,8 @@ writeCorpusPdfReport = (output, filename, options) ->
   doc.end()
   return writeStream
 
-module.exports = writePDF
+module.exports = {
+  writeCorrelationReport: writeCorrelationReport,
+  writeCorpusReport: writeCorpusReport,
+  writeSynsetReport: writeSynsetReport
+}

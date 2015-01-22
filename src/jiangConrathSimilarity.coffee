@@ -39,7 +39,6 @@ returns the ids of all synsets which are hypernymsof both node1 and node2
 getCommonHypernyms = (node1, node2) ->
   return _.intersection(node1.ancestorIds, node2.ancestorIds)
 
-
 ###
 find lowest common subsumer for nodes *node1* and *node2*, used in calculation of the
 Jiang & Conrath similarity measure
