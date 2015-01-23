@@ -36,9 +36,10 @@ createWordNetTree = (corpus, options) ->
     progressCreateDocTree.tick()
     return ret
   )
+  usedCPUs = options.numCPUs || require('os').cpus() - 1
   parallel = new Parallax(
     wordArrays,{"seriesWorkers":"lib/seriesWorkers.js"},
-    {CPUs: 12}
+    {CPUs: usedCPUs}
   )
   parallel.apply(
     [{namespace: "seriesWorkers", function:"disambiguateDoc"}],
@@ -55,7 +56,6 @@ createWordNetTree = (corpus, options) ->
 
     if options.combine
       corpusTree = generateCorpusTree(prunedDocTrees)
-      console.log corpusTree
       finalTree = calculateCounts(corpusTree)
       if options.threshold
         finalTree = thresholdDocTree(finalTree, options.threshold)

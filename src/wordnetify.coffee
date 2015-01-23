@@ -202,6 +202,7 @@ program
   .option('-c, --combine','Merge document trees to form corpus tree')
   .option('-d, --delim [value]','Delimiter to split text into documents')
   .option('-p, --pretty','Pretty print of JSON output')
+  .option('-n, --numCPUs [value]','Number of CPUs used')
   .action( (inputFile, options) ->
     prepareInputFile(inputFile, options)
   )
@@ -214,6 +215,7 @@ program
   .option('-c, --combine','Merge document trees to form corpus tree')
   .option('-d, --delim [value]','Delimiter to split text into documents')
   .option('-p, --pretty','Pretty print of JSON output')
+  .option('-n, --numCPUs [value]','Number of CPUs used')
   .action( (inputTexts, options) ->
     prepareInputTexts(inputTexts, options)
   )

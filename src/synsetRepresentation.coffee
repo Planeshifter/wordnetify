@@ -7,6 +7,7 @@ require './String.js'
 require 'plus_arrays'
 {WORDNETIFY_SYNSETS_TREE_HASH_TABLE} = require './Tree'
 BinarySearchTree = require 'bin-search-tree'
+HashTable = require 'hashtable'
 Word             = require './Word'
 
 tm = require "text-miner"
@@ -24,17 +25,11 @@ for word, synsetidArr of WORD_LOOKUP
 
 class Vocabulary
   constructor: () ->
-    @dict = new BinarySearchTree( (a, b) ->
-      if (a < b)
-        return -1
-      if (a > b)
-        return 1
-      return 0
-    )
+    @dict = new HashTable()
   add: (word) ->
     if not @dict.has(word)
       current_length = @dict.length
-      @dict.set(word, current_length)
+      @dict.put(word, current_length)
       return current_length
     else
       index = @dict.get(word)
