@@ -25,11 +25,17 @@ for word, synsetidArr of WORD_LOOKUP
 
 class Vocabulary
   constructor: () ->
-    @dict = new HashTable()
+    @dict = new BinarySearchTree((a, b) ->
+      if (a < b)
+        return -1
+      if (a > b)
+        return 1
+      return 0
+    )
   add: (word) ->
     if not @dict.has(word)
       current_length = @dict.length
-      @dict.put(word, current_length)
+      @dict.set(word, current_length)
       return current_length
     else
       index = @dict.get(word)
@@ -42,6 +48,7 @@ class Vocabulary
       ret[value] = key
     )
     return ret
+
 
 getCorpusSynsets = (docs) ->
   if Array.isArray(docs) is false then docs = Array(docs)
