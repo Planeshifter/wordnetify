@@ -27,17 +27,26 @@ createWordNetTree = (corpus, options) ->
     corpusHashTable.put(index, doc)
   corpus = []
 
-  progressCreateDocTree = new ProgressBar('Create document trees [:bar] :percent :etas', { total: wordArrays.length })
-  wordArrays = wordArrays.map( (doc) =>
+  progressCreateDocTree = new ProgressBar(
+    'Create document trees [:bar] :percent :etas',
+    { total: wordArrays.length }
+  )
+  wordArrays = wordArrays.map( (doc) ->
     ret = createDocTree(doc)
     progressCreateDocTree.tick()
     return ret
   )
-  parallel = new Parallax(wordArrays,{"seriesWorkers":"lib/seriesWorkers.js"},{CPUs: 12})
-  parallel.apply([{namespace: "seriesWorkers", function:"disambiguateDoc"}], (err, res) =>
-    processPrunedDocTrees(err, res)
+  parallel = new Parallax(
+    wordArrays,{"seriesWorkers":"lib/seriesWorkers.js"},
+    {CPUs: 12}
   )
-  # progressDisambiguation = new ProgressBar('Synset disambiguation [:bar] :percent :etas', { total: wordArrays.length })
+  parallel.apply(
+    [{namespace: "seriesWorkers", function:"disambiguateDoc"}],
+    (err, res) -> processPrunedDocTrees(err, res)
+  )
+  # progressDisambiguation = new ProgressBar(
+  #  'Synset disambiguation [:bar] :percent :etas',
+  #  { total: wordArrays.length })
 
   processPrunedDocTrees = (error, prunedDocTrees) ->
     # prunedDocTrees = prunedDocTrees.map (doc) => JSON.parse(doc)
@@ -54,18 +63,20 @@ createWordNetTree = (corpus, options) ->
       ret.tree = finalTree
       ret.vocab = vocab.getArray()
 
-      corpusHashTable.forEach( (key,value) =>
+      corpusHashTable.forEach( (key,value) ->
         corpus.push(value)
       )
       ret.corpus = corpus
-      outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+      outputJSON = if options.pretty then JSON.stringify(ret, null, 2) \
+                                     else JSON.stringify(ret)
     else
-      ret = prunedDocTrees.map( (doc) => generateWordTree(doc) )
-                          .map( (doc) => calculateCounts(doc) )
+      ret = prunedDocTrees.map( (doc) -> generateWordTree(doc) )
+                          .map( (doc) -> calculateCounts(doc) )
       if options.threshold
-        ret = ret.map( (tree) => thresholdWordTree(tree))
+        ret = ret.map( (tree) -> thresholdWordTree(tree) )
 
-      outputJSON = if options.pretty then JSON.stringify(ret, null, 2) else JSON.stringify(ret)
+      outputJSON = if options.pretty then JSON.stringify(ret, null, 2) \
+                                     else JSON.stringify(ret)
 
     if options.output
       fs.writeFileSync(options.output, outputJSON)

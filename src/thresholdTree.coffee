@@ -1,3 +1,11 @@
+###
+after word and doc counts are calculated,
+remove all synsets which appear of @tree which
+appear in less than @threshold of the documents
+or words, depending on whether thresholdDocTree or
+thresholdWordTree is called
+###
+
 thresholdDocTree = (tree, threshold) ->
   for id, synset of tree
     do (synset) ->
@@ -12,4 +20,7 @@ thresholdWordTree = (tree, threshold) ->
         delete tree[id]
   return tree
 
-module.exports = {thresholdDocTree: thresholdDocTree, thresholdWordTree: thresholdWordTree }
+module.exports = exports = {
+  thresholdDocTree: thresholdDocTree,
+  thresholdWordTree: thresholdWordTree
+}

@@ -104,4 +104,7 @@ generateWordTree = (doc) =>
 
   return hashTable
 
-module.exports = {generateCorpusTree: generateCorpusTree, generateWordTree: generateWordTree}
+module.exports = exports = {
+  generateCorpusTree: generateCorpusTree,
+  generateWordTree: generateWordTree
+}

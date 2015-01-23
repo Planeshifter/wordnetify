@@ -4,7 +4,11 @@ util = require "util"
 
 constructSynsetData = (word, docIndex) ->
   if word.synsets
-    word.synsets = word.synsets.map (id) => new SynsetNode( WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(id), docIndex, word)
+    word.synsets = word.synsets.map (id) -> new SynsetNode(
+      WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(id),
+      docIndex,
+      word
+    )
   else
     word.synsets = null
   return word.synsets
@@ -25,10 +29,11 @@ class SynsetNode
     @words = obj
 
     if (word.baseWords)
-      @baseWords = _.unique(word.baseWords.map (bw) => bw.lemma)
+      @baseWords = _.unique(word.baseWords.map (bw) -> bw.lemma)
 
     @parentId = if synset.hypernym?.length > 0 then synset.hypernym[0].synsetid else "root"
 
-
-
-module.exports = {constructSynsetData: constructSynsetData, SynsetNode: SynsetNode}
+module.exports = exports = {
+  constructSynsetData: constructSynsetData,
+  SynsetNode: SynsetNode
+}

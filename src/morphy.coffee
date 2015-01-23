@@ -33,11 +33,11 @@ MORPHY_SUBSTITUTIONS = {
 }
 
 morphy = (input_str, pos) ->
-  rulesOfDetachment = (word, substitutions) =>
+  rulesOfDetachment = (word, substitutions) ->
     result = []
-    DICTIONARY.filter((elem) =>
-      elem.lemma is word
-    ).forEach (elem) =>
+    DICTIONARY
+    .filter( (elem) -> elem.lemma is word)
+    .forEach (elem) ->
       if elem.pos is pos
         obj = new Word(elem.lemma)
         obj.part_of_speech = elem.pos
@@ -56,7 +56,10 @@ morphy = (input_str, pos) ->
             ending: ""
 
         recResult = rulesOfDetachment(new_word, substitutions)
-        (if Array.isArray(recResult) then result = result.concat(recResult) else result.push(recResult))
+        (if Array.isArray(recResult) == true
+          result = result.concat(recResult)
+        else
+          result.push(recResult))
       i++
     result
   unless pos
@@ -104,4 +107,4 @@ morphy = (input_str, pos) ->
       suffix = ""
     rulesOfDetachment input_str, substitutions
 
-module.exports = memoize morphy
+module.exports = exports = memoize morphy

@@ -1,3 +1,4 @@
+# load modules
 program       = require 'commander'
 fs            = require 'fs'
 csv           = require 'csv'
@@ -13,6 +14,7 @@ Parallax      = require 'parallax'
 # heapdump    = require 'heapdump'
 HashTable     = require 'hashtable'
 
+# load script files
 { getCorpusSynsets }            = require "./synsetRepresentation"
 { constructSynsetData }         = require "./constructSynsetData"
 pickSynsets                     = require "./pickSynsets"
@@ -24,7 +26,6 @@ createDocTree                   = require "./createDocTree"
 createWordNetTree               = require "./createWordNetTree"
 cluster = {}
 
-
 prepareInputTexts = (inputTexts, options) ->
   corpus
   delim = options.delim
@@ -32,8 +33,8 @@ prepareInputTexts = (inputTexts, options) ->
   corpus = inputTexts.split(delim)
   createWordNetTree(corpus, options)
 
-prepareWordnetTree = (inputFile, options) ->
-  corpus;
+prepareInputFile = (inputFile, options) ->
+  corpus
   delim = options.delim
   data = fs.readFileSync(inputFile)
   mime_type = mime.lookup(inputFile)
@@ -43,8 +44,8 @@ prepareWordnetTree = (inputFile, options) ->
       corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
       createWordNetTree(corpus, options)
     when "text/csv"
-      csv.parse(String(data), (err, output) =>
-        corpus = output.map( (d) => d[0] )
+      csv.parse(String(data), (err, output) ->
+        corpus = output.map( (d) -> d[0] )
         createWordNetTree(corpus, options)
       )
     when "application/json"
@@ -82,23 +83,34 @@ generatePDF = (type, options, id) ->
       # create all synset reports if --everything is supplied
       if options.everything == true
         for key, value of synsetTree.tree
-            options.synsetID = key
-            synsetWriteStream = writeSynsetReport(synsetTree, "./synsets/" + key + ".pdf", options)
-            synsetWriteStream.on("close", () => console.log("Synset Report " + key + " written") )
+          options.synsetID = key
+          synsetWriteStream = writeSynsetReport(
+            synsetTree,
+            "./synsets/" + key + ".pdf",
+            options
+          )
+          synsetWriteStream.on("close", () ->
+            console.log("Synset Report " + key + " written")
+          )
       writeStream = writeCorpusReport(synsetTree, options.output, pdfOptions)
     when "leafs"
       writeStream = writeLeafReport(synsetTree, options.output, pdfOptions)
     when "synset"
       writeStream = writeSynsetReport(synsetTree, options.output, pdfOptions)
     when "correlation"
-      writeStream = writeCorrelationReport(synsetTree, options.output, pdfOptions)
+      writeStream = writeCorrelationReport(
+        synsetTree,
+        options.output,
+        pdfOptions
+      )
     else throw new Error("Type of report has to be specified.")
 
   writeStream
-    .on("close", () =>
+    .on("close", () ->
       console.log "Job successfully completed."
       process.exit(code=0)
-    ).on("error", () =>
+    )
+    .on("error", () ->
       console.log "Job aborted with errors."
       process.exit(code=1)
     )
@@ -120,8 +132,10 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--includeIDs', 'Include synset IDs')
-  .option('-e,--everything', 'Also create synset/doc reports and link them to the corpus report')
-  .action( (options) =>
+  .option('-e,--everything',
+    'Also create synset/doc reports and link them to the corpus report'
+  )
+  .action( (options) ->
     generatePDF("corpus", options)
   )
 
@@ -134,8 +148,10 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--includeIDs', 'Include synset IDs')
-  .option('-e,--everything', 'Also create synset/doc reports and link them to the corpus report')
-  .action( (options) =>
+  .option('-e,--everything',
+    'Also create synset/doc reports and link them to the corpus report'
+  )
+  .action( (options) ->
     generatePDF("leafs", options)
   )
 
@@ -144,11 +160,10 @@ program
   .description('generate pdf report')
   .option('-i, --input [value]', 'Input JSON synset tree file')
   .option('-o, --output [value]', 'File name of generated PDF')
-  .option('-t,--type <type>', 'Specify type of report: doc, corpus, synset, correlation')
   .option('-d, --includeDocs', 'Append documents to report')
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
-  .action( (options) =>
+  .action( (options) ->
     generatePDF("doc", options)
   )
 
@@ -161,7 +176,7 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-l,--limit [value]','Maximum displayed number of correlated synsets')
-  .action( (synsetID, options) =>
+  .action( (synsetID, options) ->
     options.synsetID = synsetID
     generatePDF("synset", options)
   )
@@ -171,12 +186,11 @@ program
   .description('generate pdf report')
   .option('-i, --input [value]', 'Input JSON synset tree file')
   .option('-o, --output [value]', 'File name of generated PDF')
-  .option('-t,--type <type>', 'Specify type of report: doc, corpus, synset, correlation')
   .option('-d, --includeDocs', 'Append documents to report')
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--synsetId', 'Display synset IDs')
-  .action( (options) =>
+  .action( (options) ->
     generatePDF("correlation", options)
   )
 
@@ -188,8 +202,8 @@ program
   .option('-c, --combine','Merge document trees to form corpus tree')
   .option('-d, --delim [value]','Delimiter to split text into documents')
   .option('-p, --pretty','Pretty print of JSON output')
-  .action( (inputFile, options) =>
-    prepareWordnetTree(inputFile, options)
+  .action( (inputFile, options) ->
+    prepareInputFile(inputFile, options)
   )
 
 program
@@ -200,7 +214,7 @@ program
   .option('-c, --combine','Merge document trees to form corpus tree')
   .option('-d, --delim [value]','Delimiter to split text into documents')
   .option('-p, --pretty','Pretty print of JSON output')
-  .action( (inputTexts, options) =>
+  .action( (inputTexts, options) ->
     prepareInputTexts(inputTexts, options)
   )
 
