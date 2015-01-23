@@ -62,7 +62,13 @@ generatePDF = (type, options, id) ->
   pdfOptions.type = type
   pdfOptions.synsetID = options.synsetID
   pdfOptions.everything = options.everything
-  {writeDocReport, writeCorpusReport, writeSynsetReport, writeCorrelationReport} = require "./writePDF"
+  {
+    writeDocReport,
+    writeCorpusReport,
+    writeSynsetReport,
+    writeCorrelationReport,
+    writeLeafReport
+  } = require "./writePDF"
 
   # receive a single object synsetTree containing three keys:
   #   tree: synset trees
@@ -80,6 +86,8 @@ generatePDF = (type, options, id) ->
             synsetWriteStream = writeSynsetReport(synsetTree, "./synsets/" + key + ".pdf", options)
             synsetWriteStream.on("close", () => console.log("Synset Report " + key + " written") )
       writeStream = writeCorpusReport(synsetTree, options.output, pdfOptions)
+    when "leafs"
+      writeStream = writeLeafReport(synsetTree, options.output, pdfOptions)
     when "synset"
       writeStream = writeSynsetReport(synsetTree, options.output, pdfOptions)
     when "correlation"
@@ -115,6 +123,20 @@ program
   .option('-e,--everything', 'Also create synset/doc reports and link them to the corpus report')
   .action( (options) =>
     generatePDF("corpus", options)
+  )
+
+program
+  .command('report-leafs')
+  .description('generate pdf report for synset leafs')
+  .option('-i, --input [value]', 'Input JSON synset tree file')
+  .option('-o, --output [value]', 'File name of generated PDF')
+  .option('-d, --includeDocs', 'Append documents to report')
+  .option('-r,--docReferences', 'Include document IDs for each synset')
+  .option('-w,--includeWords', 'Include words for each synset')
+  .option('-s,--includeIDs', 'Include synset IDs')
+  .option('-e,--everything', 'Also create synset/doc reports and link them to the corpus report')
+  .action( (options) =>
+    generatePDF("leafs", options)
   )
 
 program

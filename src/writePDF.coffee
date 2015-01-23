@@ -117,7 +117,7 @@ writeCorrelationReport = (output, filename, options) ->
   doc.pipe writeStream
   renderTitlePage(doc, filename, "Correlation Report")
 
-  correlations = findCorrelatedSynsetsWithId(output)
+  correlations = findCorrelatedSynsets(output)
   console.log "Writing PDF file ..."
   correlations.forEach (pair) =>
     doc.text "#{pair.synset1} | #{pair.synset2} | #{pair.mutualInfo}"
@@ -190,6 +190,71 @@ writeSynsetReport = (output, filename, options) ->
 
 writeDocReport = (output, filename, options) ->
   console.log 'Should write DOC Reports'
+
+
+getLeafs = (tree) =>
+  for key, value of tree
+    if tree[value.parentId] then delete tree[value.parentId]
+  return tree
+
+writeLeafReport = (output, filename, options) ->
+  # Create a document
+  doc = new PDFDocument()
+  # Set up a stream to write to
+  writeStream = fs.createWriteStream(filename)
+  # Pipe document output to file
+  doc.pipe writeStream
+
+  renderTitlePage(doc, filename)
+  sectionHeader(doc, "Leaf Synsets")
+
+  fontBody(doc)
+  leafs = getLeafs(output.tree)
+  leafs = _.map(leafs, (value, key) => value)
+  sorted_leafs = leafs.sort( (a, b) =>
+    if (a.docCount) > (b.docCount) then return -1
+    if (a.docCount) < (b.docCount) then return 1
+    return 0
+  )
+  max_sorted_leafs = sorted_leafs.filter( (val, index) => index < 50 )
+  for synset in max_sorted_leafs
+    doc.fontSize 10
+    doc.fillColor 'steelblue'
+    if options.everything == true
+      doc.text synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):",
+         link: 'http://localhost:8000/synsets/' + synset.synsetid + ".pdf"
+    else
+        doc.text synset.data.words.map((e)=>e.lemma).splice(0,3).join(", ") + " (w: #{synset.wordCount}, d: #{synset.docCount}):",
+    doc.fillColor 'black'
+    doc.fontSize 6
+    if options.includeIDs == true then doc.text "ID: " + synset.synsetid
+    doc.text synset.data.definition
+    if options.docReferences then doc.text "[appears in document: " + synset.docs.join(", ") + "]"
+
+    if options.includeWords
+      doc.text "Words:"
+      wordStringArr = []
+      wordArr = _.map(synset.words, (count, key) =>
+        o = {}
+        o.word = output.vocab[key]
+        o.count = count
+        return o
+      ).sort( (a, b) =>
+        b.count - a.count
+      )
+      for obj, i in wordArr
+        index = Math.floor(i/12)
+        if index < 5
+          if not wordStringArr[index]
+            wordStringArr[index] = obj.word + "(" + obj.count + "), "
+          else
+            wordStringArr[index] += obj.word + "(" + obj.count + "), "
+        else
+          wordStringArr[index] = "..."
+          break
+  # Finalize PDF file
+  doc.end()
+  return writeStream
 
 writeCorpusReport = (output, filename, options) ->
 
@@ -278,5 +343,6 @@ writeCorpusReport = (output, filename, options) ->
 module.exports = {
   writeCorrelationReport: writeCorrelationReport,
   writeCorpusReport: writeCorpusReport,
-  writeSynsetReport: writeSynsetReport
+  writeSynsetReport: writeSynsetReport,
+  writeLeafReport: writeLeafReport
 }

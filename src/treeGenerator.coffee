@@ -13,8 +13,6 @@ mergeWords = (words1, words2) ->
 
 generateCorpusTree = (docs) =>
 
-  console.log docs
-
   bsTree = new HashTable()
   allMergedSynsets = new HashTable()
 
