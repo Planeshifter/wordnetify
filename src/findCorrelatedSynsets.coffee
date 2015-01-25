@@ -23,25 +23,54 @@ pairs = (arr) ->
     ++i
   return res
 
-##
-calculate the mutual information between the two supplied synsets, defined as
-∑x ∑y log(p(x,y) / p(x) p(y)) p(x,y)
-##
-calculateMutualInformation = (synset1, synset2, nDocs) ->
+calculateFreqTable = (synset1, synset2, nDocs) ->
+  # X: Synset1, Y: Synset2
   nCommon = _.intersection(synset1.docs, synset2.docs).length
-  joint_prob = [(nDocs - nCommon) / nDocs, nCommon / nDocs]
-  synset1_prob = [
+  nOnlyX = synset1.docs.length - nCommon
+  nOnlyY = synset2.docs.length - nCommon
+  nNone    = nDocs - nOnlyX - nOnlyY + nCommon
+
+  ###
+  Estimated probabilities:
+  X\Y  0            1
+  0  nNone/nDocs   nOnlyY/nDocs
+  1  nOnlyX/nDocs  nCommon/nDocs
+  ###
+  xy_prob = [
+    [nNone/nDocs, nOnlyY/nDocs],
+    [nOnlyX/nDocs, nCommon/nDocs]
+  ]
+  x_prob = [
     (nDocs - synset1.docs.length) / nDocs,
     synset1.docs.length / nDocs
   ]
-  synset2_prob = [
+  y_prob = [
     (nDocs - synset2.docs.length) / nDocs,
     synset2.docs.length / nDocs
   ]
+  return {
+    x: x_prob,
+    y: y_prob,
+    xy: xy_prob
+  }
+###
+calculate the mutual information between the two supplied synsets, defined as
+∑x ∑y log(p(x,y) / p(x) p(y)) p(x,y)
+###
+calculateMutualInformation = (synset1, synset2, nDocs) ->
+  probs = calculateFreqTable(synset1, synset2, nDocs)
   mutualInfo = 0
   for i in [0,1]
-    mutualInfo += joint_prob[i] * (Math.log(Math.max(joint_prob[i], 0.0001) / (synset1_prob[i] * synset2_prob[i])))
+    for j in [0,1]
+      mutualInfo += probs.xy[i][j] *
+        (Math.log(Math.max(probs.xy[i][j], 0.0001) / (probs.x[i] * probs.y[j])))
   return mutualInfo
+
+calculatePhi = (synset1, synset2, nDocs) ->
+  probs = calculateFreqTable(synset1, synset2, nDocs)
+  phi = ((probs.xy[1][1] * probs.xy[0][0])-(probs.xy[1][0] * probs.xy[0][1])) /
+    ( Math.sqrt( probs.x[0] * probs.x[1] * probs.y[0] * probs.y[1] ) )
+  return phi
 
 ###
 given wordnetify @output and @synsetid, finds the mutual information
@@ -71,13 +100,13 @@ findCorrelatedSynsetsWithId = (output, synsetid) ->
     if synset2.docs.containsAny(synset1.docs) and common.length == 0
       o = {}
       o.mutualInfo = calculateMutualInformation(synset1, synset2, nDocs)
+      o.phi = calculatePhi(synset1, synset2, nDocs)
       o.synset2 = synset2.data.words.map( (e) -> e.lemma).splice(0, 3)
       candidates.push(o)
     progressCorrelation.tick()
 
   console.log "#{candidates.length} relevant correlated synsets identified"
-  sorted_candidates = _.sortBy(candidates, (o) -> o.mutualInfo).reverse()
-  return sorted_candidates
+  return candidates
 
 ###
 for wordnetify output object, finds all pairwise-correlated synsets

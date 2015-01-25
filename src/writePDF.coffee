@@ -95,6 +95,20 @@ formD3Tree = (tree) ->
   removeFlaggedNodes(tree["root"])
   return tree["root"]
 
+formD3TreeForId = (tree, synsetid) ->
+  # initialize child arrays
+  for key of tree
+    tree[key].children = []
+  tree["root"] = {}
+  tree["root"].children = []
+  for key of tree
+    currentNode = tree[key]
+    if currentNode.parentId and tree[currentNode.parentId]
+      tree[currentNode.parentId].children.push(currentNode)
+  walkTree(tree["root"], null)
+  removeFlaggedNodes(tree["root"])
+  return tree[synsetid]
+
 # renders the title page of the guide
 renderTitlePage = (doc, filename, type = "") ->
   title = 'Corpus: ' + filename.split(".")[0]
@@ -147,27 +161,36 @@ writeSynsetReport = (output, filename, options) ->
 
   correlations = findCorrelatedSynsetsWithId(output, options.synsetID)
   limit = options.limit || 20
-  correlations = correlations.filter( (o, index) -> index <= limit)
+  sorted_correlations = _.sortBy(correlations, (o) -> o.phi)
+    .reverse()
+    .filter( (o, index) -> return index <= limit )
 
   sectionHeader(doc, "Synset Co-Occurence")
   fontBody(doc)
   doc.fontSize 10
   doc.text "It co-occurs with the following synsets:"
-  correlations.forEach( (pair) ->
+  sorted_correlations.forEach( (pair) ->
     pair.mutualInfo = pair.mutualInfo.toFixed(2)
+    pair.phi        = pair.phi.toFixed(2)
     doc.fontSize 8
-    doc.text " #{pair.synset2} | #{pair.mutualInfo}"
+    doc.text " #{pair.synset2} | #{pair.phi}"
   )
   synset_words = _.map(current_synset.words, (count, key) ->
     return output.vocab[key]
   )
+  synset_words.push("?")
 
   if options.includeDocs == true
     console.log "Summarize documents..."
     sectionHeader(doc, "Summary of Corpus Documents")
     relevant_subset = output.corpus.filter( (doc, index) ->
-      current_synset.docs.contains(index) == true
+      if (doc and current_synset.docs.contains(index) == true)
+        return true
+      else
+        return false
     )
+
+    console.log("Generate summaries...")
 
     summaries = relevant_subset.map( (doc) ->
       return textSummarizer({
@@ -184,6 +207,7 @@ writeSynsetReport = (output, filename, options) ->
     )
 
     filtered_summaries.forEach( (txt, i) ->
+      txt = txt.replace(/\s+/g, ' ')
       fontBody(doc)
       doc.fontSize 10
       doc.moveDown(0.2)
@@ -205,6 +229,12 @@ getLeafs = (tree) ->
     if tree[value.parentId] then delete tree[value.parentId]
   return tree
 
+restrictToAncestor = (tree, ancestorId) ->
+  for key, synset of tree
+    if not synset.data.ancestorIds?.contains(ancestorId)
+      delete tree[key]
+  return tree
+
 writeLeafReport = (output, filename, options) ->
   # Create a document
   doc = new PDFDocument()
@@ -218,6 +248,9 @@ writeLeafReport = (output, filename, options) ->
 
   fontBody(doc)
   leafs = getLeafs(output.tree)
+  console.log(options.root)
+  if options.root then leafs = restrictToAncestor(leafs, options.root)
+
   leafs = _.map(leafs, (value, key) -> value)
   sorted_leafs = leafs.sort( (a, b) ->
     if (a.docCount) > (b.docCount) then return -1
@@ -265,8 +298,22 @@ writeLeafReport = (output, filename, options) ->
         else
           wordStringArr[index] = "..."
           break
+      for string in wordStringArr
+        doc.text string
   # Finalize PDF file
   doc.end()
+  if options.everything == true
+    for key, value of output.tree
+      options.synsetID = key
+      options.includeDocs = true
+      synsetWriteStream = writeSynsetReport(
+        output,
+        "./synsets/" + key + ".pdf",
+        options
+      )
+      synsetWriteStream.on("close", () ->
+        console.log("Synset Report " + key + " written")
+      )
   return writeStream
 
 writeCorpusReport = (output, filename, options) ->
@@ -281,8 +328,10 @@ writeCorpusReport = (output, filename, options) ->
   doc.pipe writeStream
 
   renderTitlePage(doc, filename)
-
-  root = formD3Tree(output.tree)
+  if not options.root
+    root = formD3Tree(output.tree)
+  else
+    root = formD3TreeForId(output.tree, options.root)
 
   sectionHeader(doc, "Corpus Synset Tree")
   fontBody(doc)

@@ -8,7 +8,7 @@ request       = require 'request'
 querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
-Parallax      = require 'parallax'
+Parallex      = require 'parallex'
 HashTable     = require 'hashtable'
 
 { getCorpusSynsets }            = require "./synsetRepresentation"
@@ -37,7 +37,7 @@ createWordNetTree = (corpus, options) ->
     return ret
   )
   usedCPUs = options.numCPUs || require('os').cpus() - 1
-  parallel = new Parallax(
+  parallel = new Parallex(
     wordArrays,{"seriesWorkers":"lib/seriesWorkers.js"},
     {CPUs: usedCPUs}
   )

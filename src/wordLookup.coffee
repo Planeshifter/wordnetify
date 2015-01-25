@@ -6,7 +6,7 @@ WORDNETIFY_SYNSETS_TREE = JSON.parse(SYNSETS_JSON)
 WORDNETIFY_WORD_LOOKUP = {}
 
 for id, synset of WORDNETIFY_SYNSETS_TREE
-  synset.words.map( (w) => w.lemma).forEach( (w) =>
+  synset.words.map( (w) -> w.lemma).forEach( (w) ->
     if not WORDNETIFY_WORD_LOOKUP.hasOwnProperty(w)
       WORDNETIFY_WORD_LOOKUP[w] = [id]
     else

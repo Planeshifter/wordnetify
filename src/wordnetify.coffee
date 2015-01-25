@@ -10,7 +10,6 @@ request       = require 'request'
 querystring   = require 'querystring'
 child_process = require 'child_process'
 ProgressBar   = require 'progress'
-Parallax      = require 'parallax'
 # heapdump    = require 'heapdump'
 HashTable     = require 'hashtable'
 
@@ -61,6 +60,7 @@ generatePDF = (type, options, id) ->
   pdfOptions.docReferences = options.docReferences
   pdfOptions.includeIDs = options.includeIDs
   pdfOptions.type = type
+  pdfOptions.root = options.root
   pdfOptions.synsetID = options.synsetID
   pdfOptions.everything = options.everything
   {
@@ -84,6 +84,7 @@ generatePDF = (type, options, id) ->
       if options.everything == true
         for key, value of synsetTree.tree
           options.synsetID = key
+          options.includeDocs = true
           synsetWriteStream = writeSynsetReport(
             synsetTree,
             "./synsets/" + key + ".pdf",
@@ -96,6 +97,7 @@ generatePDF = (type, options, id) ->
     when "leafs"
       writeStream = writeLeafReport(synsetTree, options.output, pdfOptions)
     when "synset"
+      pdfOptions.correlation = options.correlation
       writeStream = writeSynsetReport(synsetTree, options.output, pdfOptions)
     when "correlation"
       writeStream = writeCorrelationReport(
@@ -132,6 +134,7 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--includeIDs', 'Include synset IDs')
+  .option('--root [value]', "root synset")
   .option('-e,--everything',
     'Also create synset/doc reports and link them to the corpus report'
   )
@@ -148,6 +151,7 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--includeIDs', 'Include synset IDs')
+  .option('--root [value]', "root synset")
   .option('-e,--everything',
     'Also create synset/doc reports and link them to the corpus report'
   )
@@ -176,6 +180,8 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-l,--limit [value]','Maximum displayed number of correlated synsets')
+  .option('-c,--correlation[value]',
+    'Measure of correlation; possible values are Phi, mutual information')
   .action( (synsetID, options) ->
     options.synsetID = synsetID
     generatePDF("synset", options)

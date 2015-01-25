@@ -40,6 +40,7 @@
     "mime": "^1.2.11",
     "mocha": "~1.21.5",
     "nlp_compromise": "^0.3.1",
+    "parallex": "^0.1.0",
     "pdfkit": "^0.7.0",
     "plus_arrays": "~0.1.2",
     "pos": "~0.1.7-2",
