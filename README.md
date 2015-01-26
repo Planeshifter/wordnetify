@@ -28,7 +28,7 @@ wordnetify --help
 
 ## Command Line Interface
 
-### wordnetify file [options] <file>
+### wordnetify file [options] \<file\>
 
 First Header  | Second Header
 ------------- | -------------
