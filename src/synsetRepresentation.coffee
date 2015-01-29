@@ -59,6 +59,7 @@ getCorpusSynsets = (docs) ->
   )
   annotated_docs = docs
     .filter( (doc) -> if doc then true else false)
+    .map( (doc) -> tm.utils.expandContractions(doc))
     .map( (doc) -> tokenizer.sentences(doc))
     .map( (doc) ->
       sentences = doc
@@ -71,6 +72,7 @@ getCorpusSynsets = (docs) ->
       annotated_doc = sentences.map( (sentence_tokens, index) ->
         return sentence_tokens
           .map( (token) ->
+            console.log token
             o = {}
             o.string = token[0]?.toLowerCase()
             o.pos = token[1]

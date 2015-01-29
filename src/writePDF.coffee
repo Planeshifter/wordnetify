@@ -193,6 +193,7 @@ writeSynsetReport = (output, filename, options) ->
     console.log("Generate summaries...")
 
     summaries = relevant_subset.map( (doc) ->
+      doc = getExcerpt(doc, synset_words)
       return textSummarizer({
         corpus: doc,
         nSentences: 2,
@@ -235,6 +236,13 @@ restrictToAncestor = (tree, ancestorId) ->
       delete tree[key]
   return tree
 
+removeBelowThreshold = (tree, threshold) ->
+  console.log threshold
+  for key, synset of tree
+    if (synset.docCount < threshold)
+      delete tree[key]
+  return tree
+
 writeLeafReport = (output, filename, options) ->
   # Create a document
   doc = new PDFDocument()
@@ -247,9 +255,27 @@ writeLeafReport = (output, filename, options) ->
   sectionHeader(doc, "Leaf Synsets")
 
   fontBody(doc)
-  leafs = getLeafs(output.tree)
-  console.log(options.root)
-  if options.root then leafs = restrictToAncestor(leafs, options.root)
+
+
+  if options.root
+    root_doc_count = output.tree[options.root].docCount
+    console.log root_doc_count
+    if options.threshold
+      thresholded_tree = removeBelowThreshold(
+        output.tree,
+        options.threshold * root_doc_count
+      )
+    leafs = getLeafs(output.tree)
+    leafs = restrictToAncestor(leafs, options.root)
+  else
+    if options.threshold
+      thresholded_tree = removeBelowThreshold(
+        output.tree,
+        options.threshold * output.corpus.length
+      )
+      leafs = getLeafs(thresholded_tree)
+    else
+      leafs = getLeafs(output.tree)
 
   leafs = _.map(leafs, (value, key) -> value)
   sorted_leafs = leafs.sort( (a, b) ->
@@ -326,6 +352,24 @@ writeCorpusReport = (output, filename, options) ->
 
   # Pipe document output to file
   doc.pipe writeStream
+
+  if options.threshold
+    for key, synset of output.tree
+      if synset.docCount < options.threshold then delete output.tree[key]
+
+  if options.root
+    root_doc_count = output.tree[options.root].docCount
+    if options.threshold
+      output.tree = removeBelowThreshold(
+        output.tree,
+        options.threshold * root_doc_count
+      )
+  else
+    if options.threshold
+      output.tree = removeBelowThreshold(
+        output.tree,
+        options.threshold * output.corpus.length
+      )
 
   renderTitlePage(doc, filename)
   if not options.root

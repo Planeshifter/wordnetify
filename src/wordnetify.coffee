@@ -1,6 +1,7 @@
 # load modules
 program       = require 'commander'
 fs            = require 'fs'
+os            = require 'os'
 csv           = require 'csv'
 mime          = require 'mime'
 BPromise      = require 'bluebird'
@@ -30,10 +31,11 @@ prepareInputTexts = (inputTexts, options) ->
   delim = options.delim
   delim = delim or ";"
   corpus = inputTexts.split(delim)
-  createWordNetTree(corpus, options)
+  createWordNetTree(corpus, null, options)
 
 prepareInputFile = (inputFile, options) ->
   corpus
+  meta
   delim = options.delim
   data = fs.readFileSync(inputFile)
   mime_type = mime.lookup(inputFile)
@@ -41,15 +43,19 @@ prepareInputFile = (inputFile, options) ->
     when "text/plain"
       delim = delim or "  "
       corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
-      createWordNetTree(corpus, options)
+      createWordNetTree(corpus, null, options)
     when "text/csv"
       csv.parse(String(data), (err, output) ->
         corpus = output.map( (d) -> d[0] )
-        createWordNetTree(corpus, options)
+        createWordNetTree(corpus, null, options)
       )
     when "application/json"
       corpus = JSON.parse(data)
-      createWordNetTree(corpus, options)
+      if options.meta
+        meta = JSON.parse( fs.readFileSync(options.meta) )
+      else
+        meta = null
+      createWordNetTree(corpus, meta, options)
 
 generatePDF = (type, options, id) ->
   file = fs.readFileSync(options.input)
@@ -63,6 +69,7 @@ generatePDF = (type, options, id) ->
   pdfOptions.root = options.root
   pdfOptions.synsetID = options.synsetID
   pdfOptions.everything = options.everything
+  pdfOptions.threshold = options.threshold
   {
     writeDocReport,
     writeCorpusReport,
@@ -110,6 +117,10 @@ generatePDF = (type, options, id) ->
   writeStream
     .on("close", () ->
       console.log "Job successfully completed."
+      switch  os.platform()
+        when "darwin" then child_process.exec("open " + options.output)
+        when "linux" then child_process.exec("xdg-open " + options.output)
+        when "win32" then child_process.exec("start '' /max " + options.output)
       process.exit(code=0)
     )
     .on("error", () ->
@@ -134,6 +145,7 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--includeIDs', 'Include synset IDs')
+  .option('-t,--threshold [value]', 'Threshold synsets')
   .option('--root [value]', "root synset")
   .option('-e,--everything',
     'Also create synset/doc reports and link them to the corpus report'
@@ -151,6 +163,7 @@ program
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--includeIDs', 'Include synset IDs')
+  .option('-t,--threshold [value]', 'Threshold synsets')
   .option('--root [value]', "root synset")
   .option('-e,--everything',
     'Also create synset/doc reports and link them to the corpus report'
@@ -202,7 +215,8 @@ program
 
 program
   .command('file <file>')
-  .description('convert corpus to synset tree(s)')
+  .description('Convert corpus to synset tree(s)')
+  .option('-m, --meta [value]', 'File holding meta information on docs')
   .option('-o, --output [value]', 'Write results to file')
   .option('-t, --threshold <n>', 'Threshold for Tree Nodes', parseInt)
   .option('-c, --combine','Merge document trees to form corpus tree')

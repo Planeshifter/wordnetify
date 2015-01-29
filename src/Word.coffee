@@ -1,6 +1,7 @@
 fs = require 'fs'
-WORD_LOOKUP = JSON.parse(fs.readFileSync(__dirname + "/../data/LOOKUP.json"))
+WORD_LOOKUP = JSON.parse(fs.readFileSync( __dirname + "/../data/LOOKUP.json") )
 {WORDNETIFY_SYNSETS_TREE_HASH_TABLE} = require './Tree'
+config = JSON.parse( fs.readFileSync( __dirname + "/../config/config.json" ) )
 
 for word, synsetidArr of WORD_LOOKUP
   WORD_LOOKUP[word] = synsetidArr.map( (id) ->
@@ -18,16 +19,21 @@ class Word
   constructor: (@lemma, @part_of_speech = null) ->
   getSynsets: (callback) ->
     ret = if WORD_LOOKUP[@lemma] then WORD_LOOKUP[@lemma] else []
-    if @part_of_speech then ret = ret.filter( (synset) =>
-      synset.pos == @part_of_speech
-    )
+    if @part_of_speech
+      ret = ret.filter( (synset) =>
+        synset.pos == @part_of_speech
+      ).filter( (synset) ->
+        config.blacklist.contains(synset.synsetid)
+      )
     return ret
   getSynsetIds: (callback) ->
     ret = if WORD_LOOKUP[@lemma] then WORD_LOOKUP[@lemma] else []
     if @part_of_speech then ret = ret.filter( (synset) =>
       synset.pos == @part_of_speech
     )
-    return ret.map( (synset) -> synset.synsetid)
+    return ret
+      .map( (synset) -> synset.synsetid)
+      .filter( (synset) -> config.blacklist.contains(synset) is false)
 
 ###
 given lemma obtained from Morphy and part of speech tag,
@@ -38,6 +44,8 @@ getSynsetIds = (lemma, part_of_speech) ->
   if part_of_speech then ret = ret.filter( (synset) ->
     synset.pos == part_of_speech
   )
+  console.log config.blacklist
   return ret.map( (synset) -> synset.synsetid)
+      .filter( (synset) -> config.blacklist.contains(synset) is false)
 
 module.exports = exports = {Word: Word, getSynsetIds: getSynsetIds}

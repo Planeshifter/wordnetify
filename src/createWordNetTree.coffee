@@ -18,7 +18,7 @@ calculateCounts                 = require "./counting"
 { thresholdDocTree, thresholdWordTree } = require "./thresholdTree"
 createDocTree                   = require "./createDocTree"
 
-createWordNetTree = (corpus, options) ->
+createWordNetTree = (corpus, meta, options) ->
   console.log 'Number of Documents to analyze: ' + corpus.length
   corpusHashTable = new HashTable()
   wordTreshold = if options.threshold then options.threshold else  1
@@ -37,8 +37,9 @@ createWordNetTree = (corpus, options) ->
     return ret
   )
   usedCPUs = options.numCPUs || require('os').cpus() - 1
+  seriesWorkersPos = __dirname + "/seriesWorkers.js"
   parallel = new Parallex(
-    wordArrays,{"seriesWorkers":"lib/seriesWorkers.js"},
+    wordArrays,{"seriesWorkers": seriesWorkersPos},
     {CPUs: usedCPUs}
   )
   parallel.apply(
@@ -62,6 +63,7 @@ createWordNetTree = (corpus, options) ->
       ret = {}
       ret.tree = finalTree
       ret.vocab = vocab.getArray()
+      ret.meta  = meta || {}
 
       corpusHashTable.forEach( (key,value) ->
         corpus.push(value)
