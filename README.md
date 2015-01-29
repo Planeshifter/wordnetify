@@ -1,5 +1,5 @@
 [![NPM version](https://badge.fury.io/js/wordnetify.svg)](http://badge.fury.io/js/wordnetify)
-[![Build Status](https://travis-ci.org/Planeshifter/node-wordnetify.svg?branch=coffee)](https://travis-ci.org/Planeshifter/node-wordnetify)
+[![Build Status](https://travis-ci.org/Planeshifter/wordnetify.svg?branch=coffee)](https://travis-ci.org/Planeshifter/wordnetify)
 
 node-wordnetify
 ===============
@@ -25,6 +25,21 @@ After installation, it is possible to obtain help about the possible options of 
 ```shell
 wordnetify --help
 ```
+
+## Command Line Interface
+
+### wordnetify file [options] \<file\>
+
+First Header  | Second Header
+------------- | -------------
+-h, --help            | output usage information
+-m, --meta [value]    | File holding meta information on docs
+-o, --output [value]  | Write results to file
+-t, --threshold <n>   | Threshold for Tree Nodes
+-c, --combine         | Merge document trees to form corpus tree
+-d, --delim [value]   | Delimiter to split text into documents
+-p, --pretty          | Pretty print of JSON output
+-n, --numCPUs [value] | Number of CPUs used
 
 # Disclaimer
 
