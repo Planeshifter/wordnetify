@@ -17,17 +17,18 @@ generateCorpusTree = (docs) ->
   allMergedSynsets = new HashTable()
 
   for doc, docIndex in docs
-    for sentence, sentenceIndex in doc
-      for synset, synsetIndex in sentence
-        # console.log "doc: #{docIndex}; sentence: #{sentenceIndex}; synset: #{synsetIndex}"
-        if synset and synset.synsetid
-          if not allMergedSynsets.has(synset.synsetid)
-            allMergedSynsets.put(synset.synsetid, synset)
-          else
-            existing_synset = allMergedSynsets.get(synset.synsetid)
-            existing_synset.docs = _.union(existing_synset.docs, synset.docs)
-            existing_synset.docCount += synset.docCount
-            existing_synset.words = mergeWords(existing_synset.words, synset.words)
+    if doc
+      for sentence, sentenceIndex in doc
+        for synset, synsetIndex in sentence
+          # console.log "doc: #{docIndex}; sentence: #{sentenceIndex}; synset: #{synsetIndex}"
+          if synset and synset.synsetid
+            if not allMergedSynsets.has(synset.synsetid)
+              allMergedSynsets.put(synset.synsetid, synset)
+            else
+              existing_synset = allMergedSynsets.get(synset.synsetid)
+              existing_synset.docs = _.union(existing_synset.docs, synset.docs)
+              existing_synset.docCount += synset.docCount
+              existing_synset.words = mergeWords(existing_synset.words, synset.words)
 
   progressCorpusTree = new ProgressBar(
     'Create corpus tree [:bar] :percent :etas',

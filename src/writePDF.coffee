@@ -128,6 +128,66 @@ renderTitlePage = (doc, filename, type = "") ->
   indent: w - doc.widthOfString(date)
   doc.addPage()
 
+# renders all relevant documents at end of report
+renderDocuments = (doc, output, options) ->
+  if output.meta?[0].title and output.meta?[0].url
+    sectionHeader(doc, "Corpus Documents")
+    output.corpus.forEach( (txt, i) ->
+      fontBody(doc)
+      doc.fontSize 10
+      doc.moveDown(0.2)
+      doc.text "Doc " + i + "; Title: " + output.meta[i].title,
+        link: output.meta[i].url,
+        width: 400
+      doc.moveDown(0.2)
+      doc.fontSize 8
+      doc.text txt
+      if doc.y > 800 then doc.addPage()
+    )
+  else if output.meta?[0].title and not output.meta?[0].url
+    sectionHeader(doc, "Corpus Documents")
+    output.corpus.forEach( (txt, i) ->
+      fontBody(doc)
+      doc.fontSize 10
+      doc.moveDown(0.2)
+      doc.text "Doc " + i + "; Title: " + output.meta[i].title,
+        width: 400
+      doc.moveDown(0.2)
+      doc.fontSize 8
+      doc.text txt,
+        width: 400
+      if doc.y > 800 then doc.addPage()
+    )
+  else if not output.meta?[0].title and output.meta?[0].url
+    sectionHeader(doc, "Corpus Documents")
+    output.corpus.forEach( (txt, i) ->
+      fontBody(doc)
+      doc.fontSize 10
+      doc.moveDown(0.2)
+      doc.text "Doc " + i + ": ",
+        link: output.meta[i].url,
+        width: 400
+      doc.moveDown(0.2)
+      doc.fontSize 8
+      doc.text txt,
+        width: 400
+      if doc.y > 800 then doc.addPage()
+    )
+  else
+    sectionHeader(doc, "Corpus Documents")
+    output.corpus.forEach( (txt, i) ->
+      fontBody(doc)
+      doc.fontSize 10
+      doc.moveDown(0.2)
+      doc.text "Doc " + i + ":",
+        width: 400
+      doc.moveDown(0.2)
+      doc.fontSize 8
+      doc.text txt,
+        width: 400
+      if doc.y > 800 then doc.addPage()
+    )
+
 
 writeCorrelationReport = (output, filename, options) ->
   # Create a document
@@ -211,9 +271,9 @@ writeSynsetReport = (output, filename, options) ->
       txt = txt.replace(/\s+/g, ' ')
       fontBody(doc)
       doc.fontSize 10
-      doc.moveDown(0.2)
+
       doc.text "Document " + i + ":"
-      doc.moveDown(0.2)
+
       doc.fontSize 8
       doc.text txt
     )
@@ -400,8 +460,7 @@ writeCorpusReport = (output, filename, options) ->
     doc.fillColor 'black'
     doc.fontSize 6
     if options.includeIDs == true then doc.text Array(depth).join(" ") +
-      "ID: " +
-      synset.synsetid
+      "ID: " + synset.synsetid
     doc.text Array(depth).join(" ") + synset.data.definition
     if options.docReferences then doc.text Array(depth).join(" ") +
         "[appears in document: " +
@@ -443,17 +502,8 @@ writeCorpusReport = (output, filename, options) ->
     printSynset(synset, depth)
   )
 
-
   if options.includeDocs
-    sectionHeader(doc, "Corpus Documents")
-
-    output.corpus.forEach( (txt, i) ->
-      fontBody(doc)
-      doc.fontSize 10
-      doc.text "Document " + i + ":"
-      doc.fontSize 8
-      doc.text txt
-    )
+    renderDocuments( doc, output, options )
 
   # Finalize PDF file
   doc.end()

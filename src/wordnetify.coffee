@@ -28,22 +28,34 @@ cluster = {}
 
 prepareInputTexts = (inputTexts, options) ->
   corpus
+  meta
   delim = options.delim
   delim = delim or ";"
   corpus = inputTexts.split(delim)
-  createWordNetTree(corpus, null, options)
+  if options.meta
+    meta = JSON.parse( fs.readFileSync(options.meta) )
+  else
+    meta = null
+
+  createWordNetTree(corpus, meta, options)
 
 prepareInputFile = (inputFile, options) ->
   corpus
   meta
   delim = options.delim
   data = fs.readFileSync(inputFile)
+
+  if options.meta
+    meta = JSON.parse( fs.readFileSync(options.meta) )
+  else
+    meta = null
+
   mime_type = mime.lookup(inputFile)
   switch mime_type
     when "text/plain"
       delim = delim or "  "
       corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
-      createWordNetTree(corpus, null, options)
+      createWordNetTree(corpus, meta, options)
     when "text/csv"
       csv.parse(String(data), (err, output) ->
         corpus = output.map( (d) -> d[0] )
@@ -51,10 +63,6 @@ prepareInputFile = (inputFile, options) ->
       )
     when "application/json"
       corpus = JSON.parse(data)
-      if options.meta
-        meta = JSON.parse( fs.readFileSync(options.meta) )
-      else
-        meta = null
       createWordNetTree(corpus, meta, options)
 
 generatePDF = (type, options, id) ->
@@ -230,6 +238,7 @@ program
 program
   .command('texts <inputTexts>')
   .description('convert corpus to synset tree(s)')
+  .option('-m, --meta [value]', 'File holding meta information on docs')
   .option('-o, --output [value]', 'Write results to file')
   .option('-t, --threshold <n>', 'Threshold for Tree Nodes', parseInt)
   .option('-c, --combine','Merge document trees to form corpus tree')

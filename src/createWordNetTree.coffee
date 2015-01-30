@@ -73,7 +73,7 @@ createWordNetTree = (corpus, meta, options) ->
       ret.meta  = meta || {}
 
       corpusHashTable.forEach( (key,value) ->
-        corpus.push(value)
+        corpus[key] = value
       )
       ret.corpus = corpus
       outputJSON = if options.pretty then JSON.stringify(ret, null, 2) \
