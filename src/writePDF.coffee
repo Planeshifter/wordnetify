@@ -129,61 +129,61 @@ renderTitlePage = (doc, filename, type = "") ->
   doc.addPage()
 
 # renders all relevant documents at end of report
-renderDocuments = (doc, output, options) ->
+renderDocuments = (doc, documents, output, options) ->
   if output.meta?[0].title and output.meta?[0].url
     sectionHeader(doc, "Corpus Documents")
-    output.corpus.forEach( (txt, i) ->
+    documents.forEach( (docObj) ->
       fontBody(doc)
       doc.fontSize 10
       doc.moveDown(0.2)
-      doc.text "Doc " + i + "; Title: " + output.meta[i].title,
-        link: output.meta[i].url,
+      doc.text "Doc " + docObj.id + "; Title: " + output.meta[docObj.id].title,
+        link: output.meta[docObj.id].url,
         width: 400
       doc.moveDown(0.2)
       doc.fontSize 8
-      doc.text txt
+      doc.text docObj.text
       if doc.y > 800 then doc.addPage()
     )
   else if output.meta?[0].title and not output.meta?[0].url
     sectionHeader(doc, "Corpus Documents")
-    output.corpus.forEach( (txt, i) ->
+    documents.forEach( (docObj) ->
       fontBody(doc)
       doc.fontSize 10
       doc.moveDown(0.2)
-      doc.text "Doc " + i + "; Title: " + output.meta[i].title,
+      doc.text "Doc " + docObj.id + "; Title: " + output.meta[docObj.id].title,
         width: 400
       doc.moveDown(0.2)
       doc.fontSize 8
-      doc.text txt,
+      doc.text docObj.text,
         width: 400
       if doc.y > 800 then doc.addPage()
     )
   else if not output.meta?[0].title and output.meta?[0].url
     sectionHeader(doc, "Corpus Documents")
-    output.corpus.forEach( (txt, i) ->
+    documents.forEach( (docObj) ->
       fontBody(doc)
       doc.fontSize 10
       doc.moveDown(0.2)
-      doc.text "Doc " + i + ": ",
-        link: output.meta[i].url,
+      doc.text "Doc " + docObj.id + ": ",
+        link: output.meta[docObj.id].url,
         width: 400
       doc.moveDown(0.2)
       doc.fontSize 8
-      doc.text txt,
+      doc.text docObj.text,
         width: 400
       if doc.y > 800 then doc.addPage()
     )
   else
     sectionHeader(doc, "Corpus Documents")
-    output.corpus.forEach( (txt, i) ->
+    documents.forEach( (docObj) ->
       fontBody(doc)
       doc.fontSize 10
       doc.moveDown(0.2)
-      doc.text "Doc " + i + ":",
+      doc.text "Doc " + docObj.id + ":",
         width: 400
       doc.moveDown(0.2)
       doc.fontSize 8
-      doc.text txt,
+      doc.text docObj.text,
         width: 400
       if doc.y > 800 then doc.addPage()
     )
@@ -242,9 +242,15 @@ writeSynsetReport = (output, filename, options) ->
 
   if options.includeDocs == true
     console.log "Summarize documents..."
-    sectionHeader(doc, "Summary of Corpus Documents")
-    relevant_subset = output.corpus.filter( (doc, index) ->
-      if (doc and current_synset.docs.contains(index) == true)
+    relevant_subset = output.corpus
+    .map( (doc, index) ->
+      docObj = {}
+      docObj.text = doc
+      docObj.id   = index
+      return docObj
+    )
+    .filter( (doc, index) ->
+      if (doc.text and current_synset.docs.contains(doc.id) == true)
         return true
       else
         return false
@@ -253,20 +259,22 @@ writeSynsetReport = (output, filename, options) ->
     console.log("Generate summaries...")
 
     summaries = relevant_subset.map( (doc) ->
-      doc = getExcerpt(doc, synset_words)
-      return textSummarizer({
-        corpus: doc,
+      doc.text = textSummarizer({
+        corpus: doc.text,
         nSentences: 2,
         emphasise: synset_words
-      }).summary)
+      }).summary
+      return doc
+    )
 
     filtered_summaries = summaries.filter( (doc) ->
       foundSynset = false
       for word in synset_words
-        if doc.indexOf(word) != -1 then foundSynset = true
+        if doc.text.indexOf(word) != -1 then foundSynset = true
       return foundSynset
     )
 
+    ###
     filtered_summaries.forEach( (txt, i) ->
       txt = txt.replace(/\s+/g, ' ')
       fontBody(doc)
@@ -277,6 +285,8 @@ writeSynsetReport = (output, filename, options) ->
       doc.fontSize 8
       doc.text txt
     )
+    ###
+    renderDocuments(doc, filtered_summaries, output, options)
 
   console.log "Writing PDF file ..."
   doc.end()
@@ -343,7 +353,11 @@ writeLeafReport = (output, filename, options) ->
     if (a.docCount) < (b.docCount) then return 1
     return 0
   )
-  max_sorted_leafs = sorted_leafs.filter( (val, index) -> index < 50 )
+
+  max_number_displayed_leafs = if options.maximum then options.maximum else 50
+  max_sorted_leafs = sorted_leafs.filter( (val, index) ->
+    index < max_number_displayed_leafs
+  )
   for synset in max_sorted_leafs
     doc.fontSize 10
     doc.fillColor 'steelblue'
@@ -503,7 +517,7 @@ writeCorpusReport = (output, filename, options) ->
   )
 
   if options.includeDocs
-    renderDocuments( doc, output, options )
+    renderDocuments( doc, output.tree, output, options )
 
   # Finalize PDF file
   doc.end()

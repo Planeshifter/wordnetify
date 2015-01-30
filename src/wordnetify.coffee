@@ -77,6 +77,7 @@ generatePDF = (type, options, id) ->
   pdfOptions.root = options.root
   pdfOptions.synsetID = options.synsetID
   pdfOptions.everything = options.everything
+  pdfOptions.maximum = options.maximum
   pdfOptions.threshold = options.threshold
   {
     writeDocReport,
@@ -172,6 +173,7 @@ program
   .option('-w,--includeWords', 'Include words for each synset')
   .option('-s,--includeIDs', 'Include synset IDs')
   .option('-t,--threshold [value]', 'Threshold synsets')
+  .option('-m,--maximum [value]','Maximum synsets to display')
   .option('--root [value]', "root synset")
   .option('-e,--everything',
     'Also create synset/doc reports and link them to the corpus report'
