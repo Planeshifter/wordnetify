@@ -19,6 +19,13 @@ calculateCounts                 = require "./counting"
 createDocTree                   = require "./createDocTree"
 
 createWordNetTree = (corpus, meta, options) ->
+  corpus = corpus.filter( (doc, index) ->
+    if doc
+      return true
+    else
+      if meta then meta.splice(index, 1)
+      return false
+  )
   console.log 'Number of Documents to analyze: ' + corpus.length
   corpusHashTable = new HashTable()
   wordTreshold = if options.threshold then options.threshold else  1

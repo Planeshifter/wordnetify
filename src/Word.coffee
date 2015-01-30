@@ -44,7 +44,6 @@ getSynsetIds = (lemma, part_of_speech) ->
   if part_of_speech then ret = ret.filter( (synset) ->
     synset.pos == part_of_speech
   )
-  console.log config.blacklist
   return ret.map( (synset) -> synset.synsetid)
       .filter( (synset) -> config.blacklist.contains(synset) is false)
 
