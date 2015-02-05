@@ -100,7 +100,7 @@ generatePDF = (type, options, id) ->
       if options.everything == true
         for key, value of synsetTree.tree
           options.synsetID = key
-          options.includeDocs = true
+          options.includeDocs = false
           synsetWriteStream = writeSynsetReport(
             synsetTree,
             "./synsets/" + key + ".pdf",

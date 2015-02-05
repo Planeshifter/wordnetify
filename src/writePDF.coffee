@@ -3,6 +3,9 @@ fs = require 'fs'
 util = require 'util'
 _ = require 'underscore'
 path = require 'path'
+fisher = require 'fisher-transform'
+multtest = require 'multtest'
+jStat = require('jStat').jStat
 require 'plus_arrays'
 
 {
@@ -126,12 +129,17 @@ renderTitlePage = (doc, filename, type = "") ->
   doc.text date,
     align: 'left'
   indent: w - doc.widthOfString(date)
-  doc.addPage()
+  # doc.addPage()
 
 # renders all relevant documents at end of report
 renderDocuments = (doc, documents, output, options) ->
   if output.meta?[0].title and output.meta?[0].url
     sectionHeader(doc, "Corpus Documents")
+    fontBody(doc)
+    doc.fontSize 10
+    doc.text "There are a total of #{documents.length} relevant documents."
+    doc.moveDown(0.5)
+
     documents.forEach( (docObj) ->
       fontBody(doc)
       doc.fontSize 10
@@ -219,22 +227,53 @@ writeSynsetReport = (output, filename, options) ->
     .map( (e) -> e.lemma).splice(0,3).join(", ") + "}"
   renderTitlePage(doc, filename, title_synset_words)
 
-  correlations = findCorrelatedSynsetsWithId(output, options.synsetID)
-  limit = options.limit || 20
-  sorted_correlations = _.sortBy(correlations, (o) -> o.phi)
-    .reverse()
-    .filter( (o, index) -> return index <= limit )
-
   sectionHeader(doc, "Synset Co-Occurence")
   fontBody(doc)
   doc.fontSize 10
   doc.text "It co-occurs with the following synsets:"
-  sorted_correlations.forEach( (pair) ->
-    pair.mutualInfo = pair.mutualInfo.toFixed(2)
-    pair.phi        = pair.phi.toFixed(2)
-    doc.fontSize 8
-    doc.text " #{pair.synset2} | #{pair.phi}"
+
+  correlations = findCorrelatedSynsetsWithId(output, options.synsetID)
+  limit = options.limit || 600
+  sorted_correlations = _.sortBy(correlations, (o) -> o.phi)
+    .reverse()
+
+  noSynsets = _.filter(output.tree, (val, key) ->
+    if val.isCandidate == true then true else false
+  ).length
+  noPossibleHypotheses = (noSynsets - 1) * (noSynsets/2)
+
+  pvalues = []
+  sorted_correlations
+  .filter( (pair) -> pair.phi >= 0 )
+  .map( (pair) ->
+    fisherTest      = fisher(pair.phi, output.corpus.length)
+    pair.L          = fisherTest.CI[0].toFixed(3)
+    pair.U          = fisherTest.CI[1].toFixed(3)
+    pair.mutualInfo = pair.mutualInfo.toFixed(3)
+    pair.phi        = pair.phi.toFixed(3)
+    N = output.corpus.length
+    rho = pair.phi
+    tStat = (rho * Math.sqrt(N - 2) ) / Math.sqrt(1 - rho*rho)
+    pair.pvalue = (1 - jStat.studentt.cdf(tStat, N - 2)) * 2
+    pvalues.push(pair.pvalue)
+    return pair
   )
+
+  pvalues = multtest.fdr(pvalues, noPossibleHypotheses)
+
+  sorted_correlations
+  .map( (pair, index) ->
+    pair.pvalue = pvalues[index]
+    return pair
+  )
+  .filter( (pair, index) ->
+    (pair.pvalue < 0.01) && (index < limit)
+  )
+  .forEach( (pair) ->
+    doc.fontSize 8
+    doc.text " #{pair.synset2} | #{pair.phi} | [#{pair.L}, #{pair.U}]"
+  )
+
   synset_words = _.map(current_synset.words, (count, key) ->
     return output.vocab[key]
   )
