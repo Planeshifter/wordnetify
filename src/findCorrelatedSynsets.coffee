@@ -114,7 +114,7 @@ and returns those with largest mutual information
 ###
 findCorrelatedSynsets = (output) ->
   tree = output.tree
-  nDocs = output.corpus.lengt
+  nDocs = output.corpus.length
   nSynsets = Object.keys(output.tree).length
 
   all_relevant_keys = _.filter(tree, (val, key) ->

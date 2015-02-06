@@ -6,6 +6,7 @@ path = require 'path'
 fisher = require 'fisher-transform'
 multtest = require 'multtest'
 jStat = require('jStat').jStat
+
 require 'plus_arrays'
 
 {
@@ -259,7 +260,7 @@ writeSynsetReport = (output, filename, options) ->
     return pair
   )
 
-  pvalues = multtest.fdr(pvalues, noPossibleHypotheses)
+  pvalues = multtest.bY(pvalues, noPossibleHypotheses)
 
   sorted_correlations
   .map( (pair, index) ->
