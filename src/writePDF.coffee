@@ -247,9 +247,9 @@ writeSynsetReport = (output, filename, options) ->
   sorted_correlations
   .filter( (pair) -> pair.phi >= 0 )
   .map( (pair) ->
-    fisherTest      = fisher(pair.phi, output.corpus.length)
-    pair.L          = fisherTest.CI[0].toFixed(3)
-    pair.U          = fisherTest.CI[1].toFixed(3)
+    fisherTestRes      = fisher.fisherTest(pair.phi, output.corpus.length)
+    pair.L          = fisherTestRes.CI[0].toFixed(3)
+    pair.U          = fisherTestRes.CI[1].toFixed(3)
     pair.mutualInfo = pair.mutualInfo.toFixed(3)
     pair.phi        = pair.phi.toFixed(3)
     N = output.corpus.length
