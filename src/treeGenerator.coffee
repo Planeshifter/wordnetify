@@ -58,6 +58,7 @@ generateCorpusTree = (docs) ->
         existing_synset.docs =  _.union(existing_synset.docs, synset.docs)
         existing_synset.new_words =  mergeWords(existing_synset.new_words, synset.words)
         existing_synset.baseWords =  existing_synset.baseWords?.concat(synset.baseWords)
+        existing_synset.isCandidate = existing_synset.isCandidate or synset.isCandidate
       if synset.parentId and synset.parentId != 'root'
         parent = WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(synset.parentId)
         attachHypernyms(parent, synset.words, synset.docs)

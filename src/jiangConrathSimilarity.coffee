@@ -29,8 +29,6 @@ getInformation = memoize (nodeId) ->
   ret = - Math.log(prob_hat)
   return ret
 
-console.log BROWN_COUNTS_HASH_TABLE.get(49)
-
 ###
 depth of synset with id *node_id*, defined as the number of nodes
 up to the root node, i.e. the number of ancestors

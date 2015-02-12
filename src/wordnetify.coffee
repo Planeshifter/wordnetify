@@ -24,6 +24,7 @@ calculateCounts                 = require "./counting"
 { thresholdDocTree, thresholdWordTree } = require "./thresholdTree"
 createDocTree                   = require "./createDocTree"
 createWordNetTree               = require "./createWordNetTree"
+trainDisambiguation             = require "./trainDisambiguation"
 cluster = {}
 
 prepareInputTexts = (inputTexts, options) ->
@@ -39,7 +40,7 @@ prepareInputTexts = (inputTexts, options) ->
 
   createWordNetTree(corpus, meta, options)
 
-prepareInputFile = (inputFile, options) ->
+prepareInputFile = (inputFile, options, fun) ->
   corpus
   meta
   delim = options.delim
@@ -55,15 +56,15 @@ prepareInputFile = (inputFile, options) ->
     when "text/plain"
       delim = delim or "  "
       corpus = String(data).replace(/\r\n?/g, "\n").split(delim).clean("")
-      createWordNetTree(corpus, meta, options)
+      fun(corpus, meta, options)
     when "text/csv"
       csv.parse(String(data), (err, output) ->
         corpus = output.map( (d) -> d[0] )
-        createWordNetTree(corpus, null, options)
+        fun(corpus, null, options)
       )
     when "application/json"
       corpus = JSON.parse(data)
-      createWordNetTree(corpus, meta, options)
+      fun(corpus, meta, options)
 
 generatePDF = (type, options, id) ->
   file = fs.readFileSync(options.input)
@@ -234,7 +235,7 @@ program
   .option('-p, --pretty','Pretty print of JSON output')
   .option('-n, --numCPUs [value]','Number of CPUs used')
   .action( (inputFile, options) ->
-    prepareInputFile(inputFile, options)
+    prepareInputFile(inputFile, options, createWordNetTree)
   )
 
 program
@@ -249,6 +250,13 @@ program
   .option('-n, --numCPUs [value]','Number of CPUs used')
   .action( (inputTexts, options) ->
     prepareInputTexts(inputTexts, options)
+  )
+
+program
+  .command('train <input>')
+  .description('train the disambiguation algorithm')
+  .action( (inputFile) ->
+    prepareInputFile(inputFile, options, trainDisambiguation)
   )
 
 program

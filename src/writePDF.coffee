@@ -14,6 +14,9 @@ require 'plus_arrays'
   findCorrelatedSynsetsWithId
 } = require './findCorrelatedSynsets'
 
+
+findConditionalProbs = require './findConditionalProbs'
+
 textSummarizer = require 'sum'
 
 fontTitle = (doc) ->
@@ -134,7 +137,9 @@ renderTitlePage = (doc, filename, type = "") ->
 
 # renders all relevant documents at end of report
 renderDocuments = (doc, documents, output, options) ->
-  if output.meta?[0].title and output.meta?[0].url
+  if util.isArray(output.meta) == true and
+  output.meta?[0].title and
+  output.meta?[0].url
     sectionHeader(doc, "Corpus Documents")
     fontBody(doc)
     doc.fontSize 10
@@ -153,7 +158,9 @@ renderDocuments = (doc, documents, output, options) ->
       doc.text docObj.text
       if doc.y > 800 then doc.addPage()
     )
-  else if output.meta?[0].title and not output.meta?[0].url
+  else if util.isArray(output.meta) == true and
+  output.meta?[0].title and
+  not output.meta?[0].url
     sectionHeader(doc, "Corpus Documents")
     documents.forEach( (docObj) ->
       fontBody(doc)
@@ -167,7 +174,9 @@ renderDocuments = (doc, documents, output, options) ->
         width: 400
       if doc.y > 800 then doc.addPage()
     )
-  else if not output.meta?[0].title and output.meta?[0].url
+  else if util.isArray(output.meta) == true and
+  not output.meta?[0].title and
+  output.meta?[0].url
     sectionHeader(doc, "Corpus Documents")
     documents.forEach( (docObj) ->
       fontBody(doc)
@@ -223,7 +232,9 @@ writeSynsetReport = (output, filename, options) ->
   # Pipe document output to file
   doc.pipe writeStream
 
+  console.log(options.synsetId)
   current_synset = output.tree[options.synsetID]
+  console.log(current_synset)
   title_synset_words = "Report for Synset {" + current_synset.data.words
     .map( (e) -> e.lemma).splice(0,3).join(", ") + "}"
   renderTitlePage(doc, filename, title_synset_words)
@@ -260,7 +271,7 @@ writeSynsetReport = (output, filename, options) ->
     return pair
   )
 
-  pvalues = multtest.bY(pvalues, noPossibleHypotheses)
+  pvalues = multtest.fdr(pvalues, noPossibleHypotheses)
 
   sorted_correlations
   .map( (pair, index) ->
@@ -268,11 +279,27 @@ writeSynsetReport = (output, filename, options) ->
     return pair
   )
   .filter( (pair, index) ->
-    (pair.pvalue < 0.01) && (index < limit)
+    (pair.pvalue < 0.05) && (index < limit)
   )
   .forEach( (pair) ->
     doc.fontSize 8
     doc.text " #{pair.synset2} | #{pair.phi} | [#{pair.L}, #{pair.U}]"
+  )
+
+  # Conditional probabilities:
+
+  sectionHeader(doc, "Conditional Probabilities:")
+  fontBody(doc)
+  doc.fontSize 10
+
+  conditionalProbs = findConditionalProbs(output, options.synsetID)
+  conditionalProbs
+  .filter( (o, index) ->
+    return index < limit
+  )
+  .forEach( (o) ->
+    doc.fontSize 8
+    doc.text " #{o.synset} | #{o.prob}"
   )
 
   synset_words = _.map(current_synset.words, (count, key) ->
@@ -394,7 +421,7 @@ writeLeafReport = (output, filename, options) ->
     return 0
   )
 
-  max_number_displayed_leafs = if options.maximum then options.maximum else 50
+  max_number_displayed_leafs = if options.maximum then options.maximum else 999
   max_sorted_leafs = sorted_leafs.filter( (val, index) ->
     index < max_number_displayed_leafs
   )
@@ -443,16 +470,16 @@ writeLeafReport = (output, filename, options) ->
   # Finalize PDF file
   doc.end()
   if options.everything == true
-    for key, value of output.tree
-      options.synsetID = key
+    for synset in max_sorted_leafs
+      options.synsetID = synset.synsetid
       options.includeDocs = true
       synsetWriteStream = writeSynsetReport(
         output,
-        "./synsets/" + key + ".pdf",
+        "./synsets/" + synset.synsetid + ".pdf",
         options
       )
       synsetWriteStream.on("close", () ->
-        console.log("Synset Report " + key + " written")
+        console.log("Synset Report " + synset.synsetid + " written")
       )
   return writeStream
 

@@ -10,6 +10,7 @@ thresholdDocTree = (tree, threshold) ->
   for id, synset of tree
     do (synset) ->
       if synset.docCount < threshold
+        tree[synset.parentId]?.isCandidate = true
         delete tree[id]
   return tree
 
@@ -17,6 +18,7 @@ thresholdWordTree = (tree, threshold) ->
   for id, synset of tree
     do (synset) ->
       if synset.wordCount < threshold
+        tree[synset.parentId]?.isCandidate = true
         delete tree[id]
   return tree
 
