@@ -260,4 +260,24 @@ program
   )
 
 program
+  .command('reset')
+  .description('restore original Brown corpus tag counts and remove' +
+  'performance stats')
+  .action(
+
+    originalFile = __dirname + '/../data/BROWN.json'
+    tagcountFile =  __dirname + '/../data/TAGCOUNTS.json'
+    fs.renameSync originalFile, tagcountFile
+
+    performance = {
+      "correct": 0 ,
+      "incorrect": 0,
+      "total": 0
+    }
+    perfStringified = JSON.stringify performance
+    fs.writeFileSync(__dirname + '/../config/performance.json', perfStringified)
+
+  )
+
+program
   .parse(process.argv)

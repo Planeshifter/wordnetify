@@ -29,6 +29,7 @@ generateCorpusTree = (docs) ->
               existing_synset.docs = _.union(existing_synset.docs, synset.docs)
               existing_synset.docCount += synset.docCount
               existing_synset.words = mergeWords(existing_synset.words, synset.words)
+              existing_synset.isCandidate = existing_synset.isCandidate or synset.isCandidate
 
   progressCorpusTree = new ProgressBar(
     'Create corpus tree [:bar] :percent :etas',

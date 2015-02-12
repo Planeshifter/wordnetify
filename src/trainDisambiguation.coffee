@@ -99,13 +99,6 @@ disambiguateDoc = (doc, docIndex) ->
   else
     return null
 
-console.log('Please enter file name of test corpus'.grey)
-corpus_file = readlineSync.question('file name:'.white.inverse + ': ')
-corpus = JSON.parse(
-  fs.readFileSync __dirname + '/../config/' + corpus_file
-)
-
-
 trainDisambiguation = (corpus) ->
   corpus = corpus.remix()
 
