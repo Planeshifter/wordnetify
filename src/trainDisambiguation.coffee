@@ -21,8 +21,9 @@ jiangConrathSimilarity = require "./jiangConrathSimilarity"
 WORDNETIFY_SYNSETS_TREE = JSON.parse(
   fs.readFileSync __dirname + '/../data/SYNSETS.json'
 )
-BROWN = JSON.parse(
-  fs.readFileSync __dirname + '/../data/BROWN.json'
+
+TAGCOUNTS = JSON.parse(
+  fs.readFileSync __dirname + '/../data/TAGCOUNTS.json'
 )
 
 PERFORMANCE = JSON.parse(
@@ -34,7 +35,7 @@ Synset disambiguation via function pickSynsets:
 @sentence contains all sentence synsets, goal is to pick the synsets as to
 maximize the Jiang Conrath similarities between them
 ###
-pickSynsets = (sentence, docIndex, sentenceIndex) ->
+pickSynsets = (sentence, docIndex, sentenceIndex, original_docs) ->
   # tick = new exectimer.Tick("pickSynsets")
   # tick.start()
   for word, index in sentence
@@ -71,6 +72,10 @@ pickSynsets = (sentence, docIndex, sentenceIndex) ->
             console.log('Not a valid input.')
           break unless word[input_synsetid] == undefined
         console.log "CHOSEN:" + WORDNETIFY_SYNSETS_TREE_HASH_TABLE.get(synset.synsetid).definition
+
+        # increase tag count of chosen synset
+        TAGCOUNTS[input_synsetid] += 1
+
         if (word[input_synsetid].synsetid == synset.synsetid)
           console.log "Correctly disambiguated :)".green
           PERFORMANCE.total += 1
@@ -82,7 +87,7 @@ pickSynsets = (sentence, docIndex, sentenceIndex) ->
         console.log "\n"
   return
 
-disambiguateDoc = (doc, docIndex) ->
+disambiguateDoc = (doc, docIndex, original_docs) ->
   if doc
     for sentence, sentenceIndex in doc
       for word, wordIndex in sentence
@@ -91,7 +96,7 @@ disambiguateDoc = (doc, docIndex) ->
     wordTree = doc.map (sentence) -> sentence.filter ( (word) -> word != null )
     if (wordTree)
       doc = wordTree.map( (sentence, sentenceIndex) ->
-        pickSynsets(sentence, docIndex, sentenceIndex)
+        pickSynsets(sentence, docIndex, sentenceIndex, original_docs)
       )
     else
       doc = null
@@ -115,7 +120,7 @@ trainDisambiguation = (corpus) ->
 
   for doc, index in wordArrays
     ret = createDocTree(doc)
-    disambiguateDoc(ret, index)
+    disambiguateDoc(ret, index, original_docs)
     console.log('Continue? (y/n):'.grey)
     doContinue = readlineSync.question('CHOICE:'.white.inverse + ': ')
     if doContinue == "n" then break
@@ -126,6 +131,10 @@ trainDisambiguation = (corpus) ->
   fs.writeFileSync(
     __dirname + '/../config/performance.json',
     JSON.stringify(PERFORMANCE)
+  )
+  fs.writeFileSync(
+    __dirname + '/../data/TAGCOUNTS.json',
+    JSON.stringify(TAGCOUNTS)
   )
 
 module.exports = exports = trainDisambiguation

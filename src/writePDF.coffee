@@ -295,11 +295,11 @@ writeSynsetReport = (output, filename, options) ->
   conditionalProbs = findConditionalProbs(output, options.synsetID)
   conditionalProbs
   .filter( (o, index) ->
-    return index < limit
+    return index < 60
   )
   .forEach( (o) ->
     doc.fontSize 8
-    doc.text " #{o.synset} | #{o.prob}"
+    doc.text " #{o.synset} | #{o.prob.toFixed(3)}"
   )
 
   synset_words = _.map(current_synset.words, (count, key) ->
@@ -331,18 +331,18 @@ writeSynsetReport = (output, filename, options) ->
         nSentences: 2,
         emphasise: synset_words
       }).summary
-      return doc
+      return doc.text
     )
 
     filtered_summaries = summaries.filter( (doc) ->
       foundSynset = false
       for word in synset_words
-        if doc.text.indexOf(word) != -1 then foundSynset = true
+        if doc.indexOf(word) != -1 then foundSynset = true
       return foundSynset
     )
 
-    ###
     filtered_summaries.forEach( (txt, i) ->
+
       txt = txt.replace(/\s+/g, ' ')
       fontBody(doc)
       doc.fontSize 10
@@ -352,7 +352,7 @@ writeSynsetReport = (output, filename, options) ->
       doc.fontSize 8
       doc.text txt
     )
-    ###
+
     renderDocuments(doc, filtered_summaries, output, options)
 
   console.log "Writing PDF file ..."
@@ -365,6 +365,11 @@ writeDocReport = (output, filename, options) ->
 getLeafs = (tree) ->
   for key, value of tree
     if tree[value.parentId] then delete tree[value.parentId]
+  return tree
+
+getCandidates = (tree) ->
+  for key, value of tree
+    if value.isCandidate == false then delete tree[key]
   return tree
 
 restrictToAncestor = (tree, ancestorId) ->

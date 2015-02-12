@@ -1,6 +1,7 @@
 # load modules
 program       = require 'commander'
 fs            = require 'fs'
+fse           = require 'fs-extra'
 os            = require 'os'
 csv           = require 'csv'
 mime          = require 'mime'
@@ -138,6 +139,21 @@ generatePDF = (type, options, id) ->
       process.exit(code=1)
     )
 
+doHardReset = () ->
+  originalFile = __dirname + '/../data/BROWN.json'
+  tagcountFile =  __dirname + '/../data/TAGCOUNTS.json'
+  fse.copy originalFile, tagcountFile, (err) ->
+    console.log if err then err else "Synset counts reset to Brown corpus."
+
+  performance = {
+    "correct": 0 ,
+    "incorrect": 0,
+    "total": 0
+  }
+  perfStringified = JSON.stringify performance
+  fs.writeFileSync __dirname + '/../config/performance.json', perfStringified
+  console.log "Disambiguation performance metrics reset."
+
 ###
 Command-Line-Interface:
 ###
@@ -255,7 +271,7 @@ program
 program
   .command('train <input>')
   .description('train the disambiguation algorithm')
-  .action( (inputFile) ->
+  .action( (inputFile, options) ->
     prepareInputFile(inputFile, options, trainDisambiguation)
   )
 
@@ -263,20 +279,8 @@ program
   .command('reset')
   .description('restore original Brown corpus tag counts and remove' +
   'performance stats')
-  .action(
-
-    originalFile = __dirname + '/../data/BROWN.json'
-    tagcountFile =  __dirname + '/../data/TAGCOUNTS.json'
-    fs.renameSync originalFile, tagcountFile
-
-    performance = {
-      "correct": 0 ,
-      "incorrect": 0,
-      "total": 0
-    }
-    perfStringified = JSON.stringify performance
-    fs.writeFileSync(__dirname + '/../config/performance.json', perfStringified)
-
+  .action( () ->
+    doHardReset()
   )
 
 program
