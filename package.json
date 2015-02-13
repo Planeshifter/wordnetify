@@ -43,7 +43,7 @@
     "jStat": "^1.1.2",
     "mime": "^1.2.11",
     "mocha": "~1.21.5",
-    "multtest": "^0.1.4",
+    "multtest": "^0.1.5",
     "nlp_compromise": "^0.3.1",
     "parallex": "^0.2.0",
     "pdfkit": "^0.7.0",

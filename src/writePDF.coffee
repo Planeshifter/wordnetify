@@ -232,9 +232,7 @@ writeSynsetReport = (output, filename, options) ->
   # Pipe document output to file
   doc.pipe writeStream
 
-  console.log(options.synsetId)
   current_synset = output.tree[options.synsetID]
-  console.log(current_synset)
   title_synset_words = "Report for Synset {" + current_synset.data.words
     .map( (e) -> e.lemma).splice(0,3).join(", ") + "}"
   renderTitlePage(doc, filename, title_synset_words)
@@ -255,19 +253,27 @@ writeSynsetReport = (output, filename, options) ->
   noPossibleHypotheses = (noSynsets - 1) * (noSynsets/2)
 
   pvalues = []
-  sorted_correlations
+  sorted_correlations = sorted_correlations
   .filter( (pair) -> pair.phi >= 0 )
   .map( (pair) ->
-    fisherTestRes      = fisher.fisherTest(pair.phi, output.corpus.length)
-    pair.L          = fisherTestRes.CI[0].toFixed(3)
-    pair.U          = fisherTestRes.CI[1].toFixed(3)
-    pair.mutualInfo = pair.mutualInfo.toFixed(3)
-    pair.phi        = pair.phi.toFixed(3)
     N = output.corpus.length
     rho = pair.phi
     tStat = (rho * Math.sqrt(N - 2) ) / Math.sqrt(1 - rho*rho)
     pair.pvalue = (1 - jStat.studentt.cdf(tStat, N - 2)) * 2
     pvalues.push(pair.pvalue)
+    return pair
+  )
+
+  alpha = 0.05
+  alpha_star = multtest.adjustSignificanceLevel(pvalues, alpha)
+
+  sorted_correlations = sorted_correlations.map( (pair) ->
+    fisherTestRes   = fisher.fisherTest(pair.phi,
+    output.corpus.length, alpha_star)
+    pair.L          = fisherTestRes.CI[0].toFixed(3)
+    pair.U          = fisherTestRes.CI[1].toFixed(3)
+    pair.mutualInfo = pair.mutualInfo.toFixed(3)
+    pair.phi        = pair.phi.toFixed(3)
     return pair
   )
 

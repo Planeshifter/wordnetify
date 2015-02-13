@@ -115,6 +115,7 @@ generatePDF = (type, options, id) ->
     when "leafs"
       writeStream = writeLeafReport(synsetTree, options.output, pdfOptions)
     when "synset"
+      console.log util.inspect pdfOptions
       pdfOptions.correlation = options.correlation
       writeStream = writeSynsetReport(synsetTree, options.output, pdfOptions)
     when "correlation"
@@ -212,7 +213,7 @@ program
   )
 
 program
-  .command('report-synset [synsetID]')
+  .command('report-synset <synsetID>')
   .description('generate pdf report')
   .option('-i, --input [value]', 'Input JSON synset tree file')
   .option('-o, --output [value]', 'File name of generated PDF')
