@@ -26,6 +26,7 @@ calculateCounts                 = require "./counting"
 createDocTree                   = require "./createDocTree"
 createWordNetTree               = require "./createWordNetTree"
 trainDisambiguation             = require "./trainDisambiguation"
+compareTrees                    = require "./compareTrees"
 cluster = {}
 
 prepareInputTexts = (inputTexts, options) ->
@@ -282,6 +283,14 @@ program
   'performance stats')
   .action( () ->
     doHardReset()
+  )
+
+program
+  .command('compare <file1> <file2>')
+  .description('compare two synset trees')
+  .option('-t, --threshold <percentage>','Threshold for synset difference')
+  .action( (file1, file2, options) ->
+    compareTrees(file1, file2, options.threshold)
   )
 
 program

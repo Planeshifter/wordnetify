@@ -193,6 +193,10 @@ renderDocuments = (doc, documents, output, options) ->
     )
   else
     sectionHeader(doc, "Corpus Documents")
+    fontBody(doc)
+    doc.fontSize 10
+    doc.text "There are a total of #{documents.length} relevant documents."
+    doc.moveDown(0.5)
     documents.forEach( (docObj) ->
       fontBody(doc)
       doc.fontSize 10
@@ -595,7 +599,13 @@ writeCorpusReport = (output, filename, options) ->
   )
 
   if options.includeDocs
-    renderDocuments( doc, output.tree, output, options )
+    documents = output.corpus.map( (doc, index) ->
+      docObj = {}
+      docObj.text = doc
+      docObj.id   = index
+      return docObj
+    )
+    renderDocuments( doc, documents, output, options )
 
   # Finalize PDF file
   doc.end()
