@@ -247,7 +247,7 @@ writeSynsetReport = (output, filename, options) ->
   doc.text "It co-occurs with the following synsets:"
 
   correlations = findCorrelatedSynsetsWithId(output, options.synsetID)
-  limit = options.limit || 600
+  limit = options.limit || 200
   sorted_correlations = _.sortBy(correlations, (o) -> o.phi)
     .reverse()
 
@@ -268,7 +268,7 @@ writeSynsetReport = (output, filename, options) ->
     return pair
   )
 
-  alpha = 0.05
+  alpha = options.alpha
   alpha_star = multtest.adjustSignificanceLevel(pvalues, alpha)
 
   sorted_correlations = sorted_correlations.map( (pair) ->
@@ -281,15 +281,23 @@ writeSynsetReport = (output, filename, options) ->
     return pair
   )
 
-  pvalues = multtest.fdr(pvalues, noPossibleHypotheses)
+  pvalues = multtest.bY(pvalues, noPossibleHypotheses)
 
-  sorted_correlations
+  sorted_correlations = sorted_correlations
   .map( (pair, index) ->
     pair.pvalue = pvalues[index]
     return pair
   )
   .filter( (pair, index) ->
-    (pair.pvalue < 0.05) && (index < limit)
+    (pair.pvalue < alpha) && (index < limit)
+  )
+
+  sorted_correlations.filter((ans) ->
+    hasSimilarChild = sorted_correlations.some( (child) ->
+      child.synset2ancestorIds.contains(ans.synset2id) and
+      output.tree[child.synset2id].docCount / output.tree[ans.synset2id].docCount > 0.5
+      )
+    return not hasSimilarChild
   )
   .forEach( (pair) ->
     doc.fontSize 8

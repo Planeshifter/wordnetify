@@ -102,6 +102,8 @@ findCorrelatedSynsetsWithId = (output, synsetid) ->
       o.mutualInfo = calculateMutualInformation(synset1, synset2, nDocs)
       o.phi = calculatePhi(synset1, synset2, nDocs)
       o.synset2 = synset2.data.words.map( (e) -> e.lemma).splice(0, 3)
+      o.synset2id = synset2.synsetid
+      o.synset2ancestorIds = synset2.data.ancestorIds
       candidates.push(o)
     progressCorrelation.tick()
 

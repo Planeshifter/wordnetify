@@ -72,6 +72,7 @@ generatePDF = (type, options, id) ->
   file = fs.readFileSync(options.input)
   synsetTree = JSON.parse(file)
   pdfOptions = {}
+  pdfOptions.alpha = options.alpha || 0.05
   pdfOptions.includeDocs = options.includeDocs
   pdfOptions.includeWords = options.includeWords
   pdfOptions.docReferences = options.docReferences
@@ -224,6 +225,7 @@ program
   .option('-l,--limit [value]','Maximum displayed number of correlated synsets')
   .option('-c,--correlation[value]',
     'Measure of correlation; possible values are Phi, mutual information')
+  .option('-a,--alpha [value]', 'Significance level alpha')
   .action( (synsetID, options) ->
     options.synsetID = synsetID
     generatePDF("synset", options)
