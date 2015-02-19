@@ -1,5 +1,6 @@
 fs = require 'fs'
 _  = require 'underscore'
+prettyjson = require 'prettyjson'
 
 compareTrees = (file1, file2, threshold) ->
   file1 = JSON.parse( fs.readFileSync(file1) )
@@ -21,23 +22,26 @@ compareTrees = (file1, file2, threshold) ->
     join.b.words_per_doc = join.b.wordCount / nDocs1
 
     ret = {}
+    ret.words = join.a.data.words.map( (e) -> e.lemma)
     ret.a = {}
-    ret.a.words = join.a.data.words.map( (e) -> e.lemma)
     ret.a.doc_percentage = join.a.docCount / nDocs1
 
     ret.b = {}
-    ret.b.words = join.b.data.words.map( (e) -> e.lemma)
     ret.b.doc_percentage = join.b.docCount / nDocs2
 
-    ret.doc_percentage_diff = Math.abs(join.a.doc_percentage - join.b.doc_percentage)
-    ret.words_per_doc_diff = Math.abs(join.a.words_per_doc - join.b.words_per_doc)
+    ret.doc_percentage_diff = join.a.doc_percentage - join.b.doc_percentage
+    ret.words_per_doc_diff = join.a.words_per_doc - join.b.words_per_doc
 
-    if ret.doc_percentage_diff > threshold then treeArr.push(ret)
+    if Math.abs(ret.doc_percentage_diff) > threshold then treeArr.push(ret)
 
   treeArr.sort( (a, b) ->
     return b.doc_percentage_diff - a.doc_percentage_diff
   )
 
-  console.log JSON.stringify(treeArr, null, 2)
+  console.log prettyjson.render treeArr, {
+    keysColor: 'cyan',
+    dashColor: 'magenta',
+    stringColor: 'white'
+  }
 
 module.exports = compareTrees

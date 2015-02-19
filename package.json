@@ -49,6 +49,7 @@
     "pdfkit": "^0.7.0",
     "plus_arrays": "~0.1.2",
     "pos": "~0.1.7-2",
+    "prettyjson": "^1.1.0",
     "progress": "^1.1.8",
     "prompt": "^0.2.14",
     "queue": "^3.0.10",
