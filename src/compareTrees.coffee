@@ -2,12 +2,17 @@ fs = require 'fs'
 _  = require 'underscore'
 prettyjson = require 'prettyjson'
 
-compareTrees = (file1, file2, threshold) ->
+compareTrees = (file1, file2, options) ->
   file1 = JSON.parse( fs.readFileSync(file1) )
   file2 = JSON.parse( fs.readFileSync(file2) )
   nDocs1 = file1.corpus.length
   nDocs2 = file2.corpus.length
   treeArr = []
+  threshold = options.threshold || 0
+  pretty = options.pretty
+
+  console.log threshold
+  console.log pretty
 
   diff_keys = _.difference(Object.keys(file1.tree), Object.keys(file2.tree))
   common_keys = _.intersection(Object.keys(file1.tree), Object.keys(file2.tree))
@@ -38,10 +43,12 @@ compareTrees = (file1, file2, threshold) ->
     return b.doc_percentage_diff - a.doc_percentage_diff
   )
 
-  console.log prettyjson.render treeArr, {
-    keysColor: 'cyan',
-    dashColor: 'magenta',
-    stringColor: 'white'
-  }
+  if pretty
+    console.log prettyjson.render treeArr, {
+      keysColor: 'cyan',
+      dashColor: 'magenta',
+      stringColor: 'white'
+    }
+  else console.log JSON.stringify( treeArr, null, 2 )
 
 module.exports = compareTrees

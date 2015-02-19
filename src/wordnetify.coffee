@@ -291,8 +291,9 @@ program
   .command('compare <file1> <file2>')
   .description('compare two synset trees')
   .option('-t, --threshold <percentage>','Threshold for synset difference')
+  .option('-p, --pretty','make output pretty (does not return JSON anymore)')
   .action( (file1, file2, options) ->
-    compareTrees(file1, file2, options.threshold)
+    compareTrees(file1, file2, options)
   )
 
 program
