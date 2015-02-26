@@ -343,34 +343,25 @@ writeSynsetReport = (output, filename, options) ->
 
     console.log("Generate summaries...")
 
-    summaries = relevant_subset.map( (doc) ->
+    summaries = relevant_subset.map( (doc, id) ->
+      doc.id = id
+      ###
       doc.text = textSummarizer({
         corpus: doc.text,
         nSentences: 2,
         emphasise: synset_words
       }).summary
-      return doc.text
+      ###
+      doc.text = doc.text.replace(/\s+/g, ' ')
+      return doc
     )
 
     filtered_summaries = summaries.filter( (doc) ->
       foundSynset = false
       for word in synset_words
-        if doc.indexOf(word) != -1 then foundSynset = true
+        if doc.text.indexOf(word) != -1 then foundSynset = true
       return foundSynset
     )
-
-    filtered_summaries.forEach( (txt, i) ->
-
-      txt = txt.replace(/\s+/g, ' ')
-      fontBody(doc)
-      doc.fontSize 10
-
-      doc.text "Document " + i + ":"
-
-      doc.fontSize 8
-      doc.text txt
-    )
-
     renderDocuments(doc, filtered_summaries, output, options)
 
   console.log "Writing PDF file ..."

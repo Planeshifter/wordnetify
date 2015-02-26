@@ -14,6 +14,7 @@ child_process = require 'child_process'
 ProgressBar   = require 'progress'
 # heapdump    = require 'heapdump'
 HashTable     = require 'hashtable'
+hasProperties = require 'validate.io-properties'
 
 # load script files
 { getCorpusSynsets }            = require "./synsetRepresentation"
@@ -28,6 +29,13 @@ createWordNetTree               = require "./createWordNetTree"
 trainDisambiguation             = require "./trainDisambiguation"
 compareTrees                    = require "./compareTrees"
 cluster = {}
+
+isWordnetifyOutput = (input) ->
+  ret = hasProperties(input, ["tree","vocab","corpus","meta"]) and
+  typeof input.tree == "object" and
+  Array.isArray( input.corpus ) == true and
+  typeof input.vocab == "object"
+  return ret
 
 prepareInputTexts = (inputTexts, options) ->
   corpus
@@ -71,6 +79,10 @@ prepareInputFile = (inputFile, options, fun) ->
 generatePDF = (type, options, id) ->
   file = fs.readFileSync(options.input)
   synsetTree = JSON.parse(file)
+
+  if isWordnetifyOutput(synsetTree) is false
+    throw new TypeError "Not a valid Wordnetify input file!"
+
   pdfOptions = {}
   pdfOptions.alpha = options.alpha || 0.05
   pdfOptions.includeDocs = options.includeDocs
@@ -117,7 +129,6 @@ generatePDF = (type, options, id) ->
     when "leafs"
       writeStream = writeLeafReport(synsetTree, options.output, pdfOptions)
     when "synset"
-      console.log util.inspect pdfOptions
       pdfOptions.correlation = options.correlation
       writeStream = writeSynsetReport(synsetTree, options.output, pdfOptions)
     when "correlation"
@@ -215,10 +226,11 @@ program
   )
 
 program
-  .command('report-synset <synsetID>')
+  .command('report-synset <synsetID> [otherIDs...]')
   .description('generate pdf report')
   .option('-i, --input [value]', 'Input JSON synset tree file')
-  .option('-o, --output [value]', 'File name of generated PDF')
+  .option('-o, --output [value]',
+  'File name of generated PDF (or prefix if multiple synsets supplied)')
   .option('-d, --includeDocs', 'Append documents to report')
   .option('-r,--docReferences', 'Include document IDs for each synset')
   .option('-w,--includeWords', 'Include words for each synset')
@@ -226,9 +238,18 @@ program
   .option('-c,--correlation[value]',
     'Measure of correlation; possible values are Phi, mutual information')
   .option('-a,--alpha [value]', 'Significance level alpha')
-  .action( (synsetID, options) ->
+  .action( (synsetID, otherIDs, options) ->
     options.synsetID = synsetID
+    filePrefix = options.output
+    if otherIDs then options.output = filePrefix + "_" + synsetID
     generatePDF("synset", options)
+    if otherIDs
+      otherIDs.forEach( (id) ->
+        if id
+          options.synsetID = id
+          options.output = filePrefix + "_" + id
+          generatePDF("synset", options)
+      )
   )
 
 program
