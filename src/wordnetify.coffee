@@ -27,6 +27,7 @@ calculateCounts                 = require "./counting"
 createDocTree                   = require "./createDocTree"
 createWordNetTree               = require "./createWordNetTree"
 trainDisambiguation             = require "./trainDisambiguation"
+calculateWordNetCoverage        = require "./calculateWordNetCoverage"
 compareTrees                    = require "./compareTrees"
 cluster = {}
 
@@ -301,6 +302,13 @@ program
   )
 
 program
+  .command('coverage <input>')
+  .description('calculate synset coverage of generated tree')
+  .action( (inputFile, options) ->
+    calculateWordNetCoverage(inputFile, options)
+  )
+
+program
   .command('reset')
   .description('restore original Brown corpus tag counts and remove' +
   'performance stats')
@@ -313,6 +321,7 @@ program
   .description('compare two synset trees')
   .option('-t, --threshold <percentage>','Threshold for synset difference')
   .option('-p, --pretty','make output pretty (does not return JSON anymore)')
+  .option('-a,--alpha [value]', 'Significance level alpha')
   .action( (file1, file2, options) ->
     compareTrees(file1, file2, options)
   )

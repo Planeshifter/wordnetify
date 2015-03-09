@@ -41,6 +41,7 @@
     "graceful-fs": "^3.0.5",
     "hashtable": "^0.5.2",
     "jStat": "^1.1.2",
+    "make-latex": "0.0.4",
     "mime": "^1.2.11",
     "mocha": "~1.21.5",
     "multtest": "^0.1.5",

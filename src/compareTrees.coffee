@@ -2,9 +2,13 @@ fs = require 'fs'
 _  = require 'underscore'
 prettyjson = require 'prettyjson'
 normal = require('jStat').jStat.normal
+multtest = require 'multtest'
 
 Phi_inv = (p) ->
   return normal.inv(p, 0, 1)
+
+Phi = (x) ->
+  return normal.cdf(x, 0, 1)
 
 compareTrees = (file1, file2, options) ->
   file1 = JSON.parse( fs.readFileSync(file1) )
@@ -23,8 +27,8 @@ compareTrees = (file1, file2, options) ->
   diff_keys = _.difference(Object.keys(file1.tree), Object.keys(file2.tree))
   common_keys = _.intersection(Object.keys(file1.tree), Object.keys(file2.tree))
 
-  # Bonferroni correction:
-  alpha = alpha / common_keys.length
+  # FDR correction:
+  pvalues = []
 
   for key in common_keys
     join = {}
@@ -36,6 +40,8 @@ compareTrees = (file1, file2, options) ->
     join.b.words_per_doc = join.b.wordCount / nDocs1
 
     ret = {}
+    ret.synsetid = join.a.synsetid
+    ret.ancestorIds = join.a.data.ancestorIds
     ret.words = join.a.data.words.map( (e) -> e.lemma)
     ret.a = {}
     ret.a.doc_percentage = join.a.docCount / nDocs1
@@ -55,6 +61,15 @@ compareTrees = (file1, file2, options) ->
     nDocs1 +  ( elem.b.doc_percentage * (1 - elem.b.doc_percentage) ) /
     nDocs2
 
+    tStat = elem.doc_percentage_diff / ( Math.sqrt(elem.delta_variance) )
+    pvalue = ( 1 - Phi(tStat) ) * 2
+    pvalues.push(elem.pvalue)
+
+
+  pvalues = multtest.bY(pvalues, common_keys.length)
+  alpha = multtest.adjustSignificanceLevel(pvalues, alpha)
+
+  for elem in treeArr
     elem.doc_percentage_diff_CI =
     [
       elem.doc_percentage_diff - Math.sqrt(elem.delta_variance) *
@@ -65,6 +80,13 @@ compareTrees = (file1, file2, options) ->
 
   treeArr.sort( (a, b) ->
     return b.doc_percentage_diff - a.doc_percentage_diff
+  )
+
+  treeArr = treeArr.filter( (ans) ->
+    hasChild = treeArr.some( (child) ->
+      child.ancestorIds.contains(ans.synsetid)
+    )
+    return not hasChild
   )
 
   if pretty

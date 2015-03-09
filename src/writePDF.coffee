@@ -6,6 +6,7 @@ path = require 'path'
 fisher = require 'fisher-transform'
 multtest = require 'multtest'
 jStat = require('jStat').jStat
+latexTable = require 'make-latex'
 
 require 'plus_arrays'
 
@@ -292,17 +293,36 @@ writeSynsetReport = (output, filename, options) ->
     (pair.pvalue < alpha) && (index < limit)
   )
 
-  sorted_correlations.filter((ans) ->
+  sorted_correlations = sorted_correlations.filter((ans) ->
     hasSimilarChild = sorted_correlations.some( (child) ->
       child.synset2ancestorIds.contains(ans.synset2id) and
       output.tree[child.synset2id].docCount / output.tree[ans.synset2id].docCount > 0.5
       )
     return not hasSimilarChild
   )
-  .forEach( (pair) ->
+  sorted_correlations.forEach( (pair) ->
     doc.fontSize 8
     doc.text " #{pair.synset2} | #{pair.phi} | [#{pair.L}, #{pair.U}]"
   )
+
+  console.log( sorted_correlations.map( (pair) -> pair.synset2).join(",") )
+  console.log( sorted_correlations.map( (pair) -> pair.phi).join(",") )
+  console.log( sorted_correlations.map( (pair) -> pair.L).join(",") )
+  console.log( sorted_correlations.map( (pair) -> pair.U).join(",") )
+
+  console.log latexTable(sorted_correlations.map( (pair) ->
+    o = {}
+    o.synset = pair.synset2
+    o.correlation = pair.phi
+    o.CI = "[#{pair.L}, #{pair.U}]"
+    return o
+  ), {
+    captionPlacement: "top",
+    pos: "h!",
+    caption: " ",
+    label: " ",
+    spec: "l | c | c"
+  })
 
   # Conditional probabilities:
 
